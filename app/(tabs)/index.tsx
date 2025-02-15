@@ -6,13 +6,14 @@ import Background from '../../components/Background';
 import { useSavedArticles } from '../../context/SavedArticlesContext';
 import NewsCard from '../../components/NewsCard';
 import { useNews } from '../../context/NewsContext';
+import { useTheme } from '../../constants/theme';
+import ThemeToggle from '../../components/ThemeToggle';
 
 export default function DiscoverScreen() {
   const { articles, isLoading, error, fetchNews } = useNews();
   const [refreshing, setRefreshing] = useState(false);
   const [currentArticles, setCurrentArticles] = useState(articles);
-  const colorScheme = useColorScheme();
-  const isDark = colorScheme === 'dark';
+  const { isDark } = useTheme();
 
   useEffect(() => {
     fetchNews(false); // Use cached data on initial load
@@ -50,15 +51,18 @@ export default function DiscoverScreen() {
     <Background>
       <View style={styles.header}>
         <Text style={[styles.headerTitle, { color: isDark ? '#fff' : '#000' }]}>Discover</Text>
-        <Pressable 
-          style={styles.sourcesButton}
-          onPress={() => router.push('/feeds')}>
-          <Ionicons 
-            name="layers-outline" 
-            size={24} 
-            color={isDark ? '#fff' : '#000'} 
-          />
-        </Pressable>
+        <View style={styles.headerActions}>
+          <ThemeToggle />
+          <Pressable 
+            style={[styles.sourcesButton, { marginLeft: 8 }]}
+            onPress={() => router.push('/feeds')}>
+            <Ionicons 
+              name="layers-outline" 
+              size={24} 
+              color={isDark ? '#fff' : '#000'} 
+            />
+          </Pressable>
+        </View>
       </View>
       <ScrollView
         style={styles.container}
@@ -176,6 +180,10 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 28,
     fontWeight: 'bold',
+  },
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   sourcesButton: {
     padding: 8,

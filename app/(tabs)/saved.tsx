@@ -6,7 +6,6 @@ import {
   FlatList,
   Pressable,
   Image,
-  useColorScheme,
   SafeAreaView,
   ListRenderItem,
 } from 'react-native';
@@ -16,11 +15,12 @@ import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { formatDistanceToNow } from 'date-fns';
 import { NewsItem } from '../../components/NewsCard';
+import { useTheme } from '../../constants/theme';
+import ThemeToggle from '../../components/ThemeToggle';
 
 export default function SavedScreen() {
   const { savedArticles, removeArticle } = useSavedArticles();
-  const colorScheme = useColorScheme();
-  const isDark = colorScheme === 'dark';
+  const { isDark } = useTheme();
 
   const renderItem: ListRenderItem<NewsItem> = ({ item }) => (
     <Pressable
@@ -79,35 +79,36 @@ export default function SavedScreen() {
   return (
     <Background>
       <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <Text style={[styles.headerTitle, { color: isDark ? '#fff' : '#000' }]}>
-          Saved Articles
-        </Text>
-      </View>
-      {savedArticles.length > 0 ? (
-        <FlatList
-          data={savedArticles}
-          renderItem={renderItem}
-          keyExtractor={(item) => item.id}
-          contentContainerStyle={styles.list}
-        />
-      ) : (
-        <View style={styles.emptyContainer}>
-          <Ionicons
-            name="bookmark-outline"
-            size={64}
-            color={isDark ? '#333' : '#ccc'}
-          />
-          <Text
-            style={[styles.emptyText, { color: isDark ? '#fff' : '#000' }]}>
-            No saved articles yet
+        <View style={styles.header}>
+          <Text style={[styles.headerTitle, { color: isDark ? '#fff' : '#000' }]}>
+            Saved Articles
           </Text>
-          <Text
-            style={[styles.emptySubtext, { color: isDark ? '#ccc' : '#666' }]}>
-            Articles you save will appear here
-          </Text>
+          <ThemeToggle />
         </View>
-      )}
+        {savedArticles.length > 0 ? (
+          <FlatList
+            data={savedArticles}
+            renderItem={renderItem}
+            keyExtractor={(item) => item.id}
+            contentContainerStyle={styles.list}
+          />
+        ) : (
+          <View style={styles.emptyContainer}>
+            <Ionicons
+              name="bookmark-outline"
+              size={64}
+              color={isDark ? '#333' : '#ccc'}
+            />
+            <Text
+              style={[styles.emptyText, { color: isDark ? '#fff' : '#000' }]}>
+              No saved articles yet
+            </Text>
+            <Text
+              style={[styles.emptySubtext, { color: isDark ? '#ccc' : '#666' }]}>
+              Articles you save will appear here
+            </Text>
+          </View>
+        )}
       </SafeAreaView>
     </Background>
   );
@@ -118,6 +119,9 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     paddingHorizontal: 20,
     paddingVertical: 20,
   },

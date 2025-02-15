@@ -1,20 +1,46 @@
-import React, { createContext, useContext } from 'react';
+import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useColorScheme } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+type ColorScheme = 'light' | 'dark' | 'system';
 
 type ThemeContextType = {
   colors: typeof theme.light;
   isDark: boolean;
+  colorScheme: ColorScheme;
+  setColorScheme: (scheme: ColorScheme) => void;
 };
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
+const THEME_STORAGE_KEY = '@theme_preference';
+
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const colorScheme = useColorScheme();
-  const isDark = colorScheme === 'dark';
+  const systemColorScheme = useColorScheme();
+  const [colorScheme, setColorSchemeState] = useState<ColorScheme>('system');
+
+  useEffect(() => {
+    // Load saved theme preference
+    AsyncStorage.getItem(THEME_STORAGE_KEY).then((value) => {
+      if (value) {
+        setColorSchemeState(value as ColorScheme);
+      }
+    });
+  }, []);
+
+  const setColorScheme = async (scheme: ColorScheme) => {
+    setColorSchemeState(scheme);
+    await AsyncStorage.setItem(THEME_STORAGE_KEY, scheme);
+  };
+
+  const isDark = colorScheme === 'system' 
+    ? systemColorScheme === 'dark'
+    : colorScheme === 'dark';
+
   const colors = theme[isDark ? 'dark' : 'light'];
 
   return (
-    <ThemeContext.Provider value={{ colors, isDark }}>
+    <ThemeContext.Provider value={{ colors, isDark, colorScheme, setColorScheme }}>
       {children}
     </ThemeContext.Provider>
   );
