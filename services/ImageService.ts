@@ -19,139 +19,45 @@ class ImageService {
     'https://images.unsplash.com/photo-1555066931-4365d14bab8c?w=800&q=80', // code on screen
     'https://images.unsplash.com/photo-1517694712202-14dd9538aa97?w=800&q=80', // laptop lifestyle
     'https://images.unsplash.com/photo-1563986768711-b3bde3dc821e?w=800&q=80', // desk setup
+    'https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?w=800&q=80', // binary code
+    'https://images.unsplash.com/photo-1516116216624-53e697fedbea?w=800&q=80', // modern workspace
+    'https://images.unsplash.com/photo-1504639725590-34d0984388bd?w=800&q=80', // code projection
+    'https://images.unsplash.com/photo-1571171637578-41bc2dd41cd2?w=800&q=80', // computer desk
+    'https://images.unsplash.com/photo-1542831371-29b0f74f9713?w=800&q=80', // code closeup
   ];
 
-  private getRandomDefaultImage(): string {
-    const index = Math.floor(Math.random() * this.DEFAULT_IMAGES.length);
-    return this.DEFAULT_IMAGES[index];
+  private imagePool: string[] = [];
+  private readonly POOL_SIZE = 20;
+
+  constructor() {
+    this.initializeImagePool();
   }
 
-  private async searchImage(query: string): Promise<UnsplashImage | null> {
-    if (!UNSPLASH_API_KEY) {
-      console.warn('Unsplash API key not configured, using default images');
-      return {
-        id: 'default',
-        urls: {
-          regular: this.getRandomDefaultImage(),
-          small: this.getRandomDefaultImage()
-        },
-        alt_description: 'Default tech image'
-      };
-    }
+  private initializeImagePool() {
+    // Start with all default images
+    this.imagePool = [...this.DEFAULT_IMAGES];
+    // Shuffle the pool
+    this.shufflePool();
+  }
 
-    try {
-      const response = await axios.get(`${UNSPLASH_API_URL}/search/photos`, {
-        params: {
-          query,
-          per_page: 1,
-        },
-        headers: {
-          Authorization: `Client-ID ${UNSPLASH_API_KEY}`,
-        },
-      });
-
-      const images = response.data.results;
-      if (images.length > 0) {
-        const image = images[0];
-        return {
-          ...image,
-          urls: {
-            ...image.urls,
-            regular: image.urls.regular + '&w=800&q=80'
-          }
-        };
-      }
-      return null;
-    } catch (error) {
-      console.warn('Error fetching image from Unsplash:', error);
-      return {
-        id: 'default',
-        urls: {
-          regular: this.getRandomDefaultImage(),
-          small: this.getRandomDefaultImage()
-        },
-        alt_description: 'Default tech image'
-      };
+  private shufflePool() {
+    for (let i = this.imagePool.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [this.imagePool[i], this.imagePool[j]] = [this.imagePool[j], this.imagePool[i]];
     }
   }
 
-  private readonly techKeywords = [
-    'programming',
-    'coding',
-    'developer',
-    'software',
-    'technology',
-    'computer',
-    'development',
-    'code',
-    'tech',
-  ];
-
-  private readonly excludedWords = [
-    'a', 'an', 'the', 'in', 'on', 'at', 'to', 'for', 'of', 'with',
-    'by', 'from', 'up', 'about', 'into', 'over', 'after'
-  ];
-
-  private cleanAndExtractKeywords(text: string): string[] {
-    return text
-      .toLowerCase()
-      .replace(/[^\w\s]/g, '')
-      .split(' ')
-      .filter(word => 
-        word.length > 2 && 
-        !this.excludedWords.includes(word)
-      );
+  private getNextImage(): string {
+    // If pool is empty or getting low, refill it
+    if (this.imagePool.length < 3) {
+      this.initializeImagePool();
+    }
+    return this.imagePool[Math.floor(Math.random() * this.imagePool.length)];
   }
 
-  private async searchWithTechContext(query: string): Promise<UnsplashImage | null> {
-    // First try with the exact query + tech context
-    const techQuery = `${query} ${this.techKeywords[0]}`;
-    const result = await this.searchImage(techQuery);
-    if (result) return result;
-
-    // If no results, try with different tech keywords
-    for (const keyword of this.techKeywords.slice(1)) {
-      const contextQuery = `${query} ${keyword}`;
-      const contextResult = await this.searchImage(contextQuery);
-      if (contextResult) return contextResult;
-    }
-
-    return null;
-  }
-
-  async getRelatedImage(title: string, tags: string[]): Promise<string | null> {
-    try {
-      // Try searching with tech-related tags first
-      const techTags = tags.filter(tag => 
-        this.techKeywords.some(keyword => 
-          tag.toLowerCase().includes(keyword)
-        )
-      );
-      
-      if (techTags.length > 0) {
-        const tagQuery = techTags.slice(0, 2).join(' ');
-        const tagImage = await this.searchImage(tagQuery);
-        if (tagImage) {
-          return tagImage.urls.regular;
-        }
-      }
-
-      // If no tech tags, try with title + tech context
-      const titleKeywords = this.cleanAndExtractKeywords(title)
-        .slice(0, 3)
-        .join(' ');
-      
-      const titleImage = await this.searchWithTechContext(titleKeywords);
-      if (titleImage) {
-        return titleImage.urls.regular;
-      }
-
-      // If still no image, use a default tech-related image
-      return this.getRandomDefaultImage();
-    } catch (error) {
-      console.error('Error getting related image:', error);
-      return this.getRandomDefaultImage();
-    }
+  async getRelatedImage(title: string, tags: string[]): Promise<string> {
+    // Simply return the next image from our pool
+    return this.getNextImage();
   }
 }
 
