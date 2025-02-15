@@ -6,7 +6,10 @@ import {
   ScrollView,
   Switch,
   useColorScheme,
+  Pressable,
 } from 'react-native';
+import { router } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import { newsFeedService, CustomFeed } from '../services/NewsFeedService';
 
 export function FeedManager() {
@@ -21,7 +24,16 @@ export function FeedManager() {
 
   return (
     <View style={[styles.container, { backgroundColor: isDark ? '#1A1A1A' : '#fff' }]}>
-      <Text style={[styles.title, { color: isDark ? '#fff' : '#000' }]}>News Sources</Text>
+      <View style={styles.header}>
+        <Pressable onPress={() => router.back()} style={styles.backButton}>
+          <Ionicons
+            name="arrow-back"
+            size={24}
+            color={isDark ? '#fff' : '#000'}
+          />
+        </Pressable>
+        <Text style={[styles.title, { color: isDark ? '#fff' : '#000' }]}>News Sources</Text>
+      </View>
       <ScrollView style={styles.feedList}>
         {feeds.map(feed => (
           <View key={feed.id} style={[styles.feedItem, { borderBottomColor: isDark ? '#333' : '#eee' }]}>
@@ -46,11 +58,20 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 16,
   },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 60,
+    marginBottom: 16,
+  },
+  backButton: {
+    padding: 8,
+    marginRight: 16,
+    borderRadius: 20,
+  },
   title: {
     fontSize: 24,
     fontWeight: 'bold',
-    marginBottom: 16,
-    marginTop: 60,
   },
   feedList: {
     flex: 1,
