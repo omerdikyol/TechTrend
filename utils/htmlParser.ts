@@ -101,7 +101,6 @@ export { cleanHtml };
 
 export const styles = StyleSheet.create({
   codeBlock: {
-    backgroundColor: '#f6f8fa',
     padding: 16,
     borderRadius: 8,
     marginVertical: 8,
@@ -113,19 +112,22 @@ export const styles = StyleSheet.create({
   },
   heading: {
     fontWeight: 'bold',
-    marginVertical: 16,
+    marginTop: 24,
+    marginBottom: 16,
   },
   h1: {
     fontSize: 24,
+    lineHeight: 32,
   },
   h2: {
     fontSize: 20,
+    lineHeight: 28,
   },
   h3: {
     fontSize: 18,
+    lineHeight: 24,
   },
   link: {
-    color: '#0366d6',
     textDecorationLine: 'underline',
   },
   image: {
@@ -134,5 +136,18 @@ export const styles = StyleSheet.create({
     resizeMode: 'cover',
     borderRadius: 8,
     marginVertical: 8,
+  },
+  list: {
+    marginLeft: 16,
+    marginVertical: 8,
+  },
+  listItem: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginBottom: 4,
+  },
+  bullet: {
+    marginRight: 8,
+    marginTop: 6,
   },
 });

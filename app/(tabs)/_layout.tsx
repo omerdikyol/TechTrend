@@ -1,15 +1,12 @@
-import { Stack } from 'expo-router';
-import { useTheme } from '../../constants/theme';
+import React from 'react';
+import { View, StyleSheet } from 'react-native';
+import Background from '../../components/Background';
+import MainScreen from './index';
 
 export default function TabLayout() {
-  const { isDark } = useTheme();
-
   return (
-    <Stack
-      screenOptions={{
-        headerShown: false,
-      }}>
-      <Stack.Screen name="index" />
-    </Stack>
+    <Background>
+      <MainScreen />
+    </Background>
   );
 }

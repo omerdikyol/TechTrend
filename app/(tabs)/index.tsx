@@ -147,59 +147,59 @@ export default function MainScreen() {
   );
 
   return (
-      <View style={styles.mainContainer}>
-        <View style={styles.header}>
-          <View style={styles.navigationContainer}>
-            <View style={[styles.tabBar, { backgroundColor: isDark ? '#333' : '#f0f0f0' }]}>
-              <Animated.View 
-                style={[
-                  styles.activeIndicator, 
-                  { backgroundColor: isDark ? '#fff' : '#000' },
-                  indicatorStyle
-                ]} 
-              />
-              <Pressable 
-                style={styles.tabButton} 
-                onPress={() => setActiveTab('discover')}
-              >
-                <Text style={[
-                  styles.tabText,
-                  { color: activeTab === 'discover' ? (isDark ? '#fff' : '#000') : (isDark ? '#999' : '#666') }
-                ]}>
-                  Discover
-                </Text>
-              </Pressable>
-              <Pressable 
-                style={styles.tabButton}
-                onPress={() => setActiveTab('saved')}
-              >
-                <Text style={[
-                  styles.tabText,
-                  { color: activeTab === 'saved' ? (isDark ? '#fff' : '#000') : (isDark ? '#999' : '#666') }
-                ]}>
-                  Saved
-                </Text>
-              </Pressable>
-            </View>
-          </View>
-          <View style={styles.headerActions}>
-            <ThemeToggle />
+    <View style={styles.mainContainer}>
+      <View style={styles.header}>
+        <View style={styles.navigationContainer}>
+          <View style={[styles.tabBar, { backgroundColor: isDark ? '#333' : '#f0f0f0' }]}>
+            <Animated.View 
+              style={[
+                styles.activeIndicator, 
+                { backgroundColor: isDark ? '#fff' : '#000' },
+                indicatorStyle
+              ]} 
+            />
             <Pressable 
-              style={[styles.sourcesButton, { marginLeft: 8 }]}
-              onPress={() => router.push('/feeds')}>
-              <Ionicons 
-                name="layers-outline" 
-                size={24} 
-                color={isDark ? '#fff' : '#000'} 
-              />
+              style={styles.tabButton} 
+              onPress={() => setActiveTab('discover')}
+            >
+              <Text style={[
+                styles.tabText,
+                { color: activeTab === 'discover' ? (isDark ? '#fff' : '#000') : (isDark ? '#999' : '#666') }
+              ]}>
+                Discover
+              </Text>
+            </Pressable>
+            <Pressable 
+              style={styles.tabButton}
+              onPress={() => setActiveTab('saved')}
+            >
+              <Text style={[
+                styles.tabText,
+                { color: activeTab === 'saved' ? (isDark ? '#fff' : '#000') : (isDark ? '#999' : '#666') }
+              ]}>
+                Saved
+              </Text>
             </Pressable>
           </View>
         </View>
-        
-        <View style={styles.content}>
-          {activeTab === 'discover' ? renderDiscoverContent() : <SavedArticles />}
+        <View style={styles.headerActions}>
+          <ThemeToggle />
+          <Pressable 
+            style={[styles.sourcesButton, { marginLeft: 8 }]}
+            onPress={() => router.push('/feeds')}>
+            <Ionicons 
+              name="layers-outline" 
+              size={24} 
+              color={isDark ? '#fff' : '#000'} 
+            />
+          </Pressable>
         </View>
       </View>
+      
+      <View style={styles.content}>
+        {activeTab === 'discover' ? renderDiscoverContent() : <SavedArticles />}
+      </View>
+    </View>
   );
 }
 

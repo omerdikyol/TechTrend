@@ -5,7 +5,6 @@ import {
   StyleSheet,
   ScrollView,
   Image,
-  useColorScheme,
   Pressable,
   Share,
   Alert,
@@ -21,11 +20,13 @@ import { useNews } from '../../context/NewsContext';
 import { useSavedArticles } from '../../context/SavedArticlesContext';
 import { parseHtml, styles as htmlStyles } from '../../utils/htmlParser';
 import CodeBlock from '../../components/CodeBlock';
+import { useTheme } from '../../constants/theme';  // Fixed import path
 
 export default function ArticleDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { articles } = useNews();
   const { savedArticles, saveArticle, removeArticle, isSaved } = useSavedArticles();
+  const { isDark } = useTheme();  // Use theme hook instead of useColorScheme
   
   // First try to find the article in the main articles list, then in saved articles
   const article = [...articles, ...savedArticles].find((a) => a.id === id);
@@ -34,8 +35,6 @@ export default function ArticleDetailScreen() {
     router.back();
     return null;
   }
-  const colorScheme = useColorScheme();
-  const isDark = colorScheme === 'dark';
 
   const handleShare = async () => {
     try {
@@ -59,9 +58,17 @@ export default function ArticleDetailScreen() {
 
   return (
     <Background>
-      <SafeAreaView style={styles.safeArea} edges={['right', 'left', 'bottom']}>
-        <View style={styles.container}>
-          <View style={styles.headerOverlay}>
+      <SafeAreaView 
+        style={[
+          styles.safeArea, 
+          { backgroundColor: isDark ? '#000' : '#fff' }
+        ]} 
+        edges={['right', 'left', 'bottom']}
+      >
+        <View style={[styles.container, { backgroundColor: isDark ? '#000' : '#fff' }]}>
+          <View style={[styles.headerOverlay, { 
+            backgroundColor: isDark ? 'rgba(0, 0, 0, 0.85)' : 'rgba(0, 0, 0, 0.75)',
+          }]}>
             <SafeAreaView edges={['top']}>
               <View style={styles.header}>
                 <Pressable onPress={() => router.back()} style={styles.backButton}>
@@ -115,9 +122,12 @@ export default function ArticleDetailScreen() {
               </View>
             </SafeAreaView>
           </View>
-          <ScrollView style={styles.content}>
-            <View style={styles.imageContainer}>
-              <Image source={{ uri: article.imageUrl }} style={styles.image} />
+          <ScrollView style={[styles.content, { backgroundColor: isDark ? '#000' : '#fff' }]}>
+            <View style={[styles.imageContainer, { backgroundColor: isDark ? '#000' : '#f0f0f0' }]}>
+              <Image 
+                source={{ uri: article.imageUrl, cache: 'force-cache' }}
+                style={styles.image}
+              />
             </View>
             <View style={styles.articleContent}>
               {article.source === 'Hacker News' && (
@@ -129,7 +139,10 @@ export default function ArticleDetailScreen() {
                         size={16}
                         color={isDark ? '#fff' : '#000'}
                       />
-                      <Text style={[styles.hnStatText, { color: isDark ? '#fff' : '#000' }]}>
+                      <Text style={[
+                        styles.hnStatText, 
+                        { color: isDark ? '#fff' : '#000', opacity: isDark ? 0.9 : 0.8 }
+                      ]}>
                         {article.points} points
                       </Text>
                     </View>
@@ -141,7 +154,10 @@ export default function ArticleDetailScreen() {
                         size={16}
                         color={isDark ? '#fff' : '#000'}
                       />
-                      <Text style={[styles.hnStatText, { color: isDark ? '#fff' : '#000' }]}>
+                      <Text style={[
+                        styles.hnStatText, 
+                        { color: isDark ? '#fff' : '#000', opacity: isDark ? 0.9 : 0.8 }
+                      ]}>
                         {article.commentCount} comments
                       </Text>
                     </View>
@@ -154,38 +170,26 @@ export default function ArticleDetailScreen() {
                     key={tag}
                     style={[
                       styles.tag,
-                      { backgroundColor: isDark ? '#333' : '#f0f0f0' },
+                      { backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)' },
                     ]}>
                     <Text
                       style={[
                         styles.tagText,
-                        { color: isDark ? '#fff' : '#000' },
+                        { color: isDark ? '#fff' : '#000', opacity: isDark ? 0.9 : 0.8 },
                       ]}>
                       {tag}
                     </Text>
                   </View>
                 ))}
               </View>
-              <Text
-                style={[
-                  styles.title,
-                  { color: isDark ? '#fff' : '#000' },
-                ]}>
+              <Text style={[styles.title, { color: isDark ? '#fff' : '#000' }]}>
                 {article.title}
               </Text>
               <View style={styles.meta}>
-                <Text
-                  style={[
-                    styles.source,
-                    { color: isDark ? '#ccc' : '#666' },
-                  ]}>
+                <Text style={[styles.source, { color: isDark ? '#ccc' : '#666' }]}>
                   {article.source}
                 </Text>
-                <Text
-                  style={[
-                    styles.date,
-                    { color: isDark ? '#ccc' : '#666' },
-                  ]}>
+                <Text style={[styles.date, { color: isDark ? '#ccc' : '#666' }]}>
                   {formatDistanceToNow(article.publishedAt, { addSuffix: true })}
                 </Text>
               </View>
@@ -193,12 +197,17 @@ export default function ArticleDetailScreen() {
                 {parseHtml(article.summary).map((part, index) => (
                   <React.Fragment key={index}>
                     {part.type === 'text' ? (
-                      <Text
+                      <Text 
                         style={[
                           styles.summaryText,
-                          { color: isDark ? '#fff' : '#000' },
-                          htmlStyles.paragraph
-                        ]}>
+                          { 
+                            color: isDark ? '#fff' : '#000',
+                            opacity: isDark ? 0.9 : 0.8,
+                          },
+                          htmlStyles.paragraph,
+                        ]}
+                        selectable={true} // Make text selectable
+                      >
                         {part.content}
                       </Text>
                     ) : (
@@ -225,15 +234,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  headerOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    zIndex: 10,
-    backgroundColor: 'rgba(0, 0, 0, 0.75)',
-    backdropFilter: 'blur(10px)',
-  },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -241,11 +241,22 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 8,
     minHeight: 52,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  headerOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 10,
+    backgroundColor: 'rgba(0, 0, 0, 0.75)',
+    backdropFilter: Platform.OS === 'ios' ? 'blur(10px)' : undefined,
   },
   backButton: {
     padding: 8,
     borderRadius: 20,
-    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
   },
   headerActions: {
     flexDirection: 'row',
@@ -255,7 +266,7 @@ const styles = StyleSheet.create({
   actionButton: {
     padding: 8,
     borderRadius: 20,
-    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
   },
   content: {
     flex: 1,
@@ -264,6 +275,7 @@ const styles = StyleSheet.create({
   imageContainer: {
     height: 300,
     backgroundColor: '#000',
+    borderBottomWidth: 1,
   },
   image: {
     width: '100%',
@@ -307,6 +319,7 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: 'bold',
     marginBottom: 8,
+    lineHeight: 32,
   },
   meta: {
     flexDirection: 'row',
@@ -327,5 +340,9 @@ const styles = StyleSheet.create({
   summaryText: {
     fontSize: 18,
     lineHeight: 28,
+    marginBottom: 16,
+  },
+  link: {
+    textDecorationLine: 'underline',
   },
 });

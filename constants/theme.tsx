@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { useColorScheme } from 'react-native';
+import { useColorScheme, AppState, AppStateStatus } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 type ColorScheme = 'light' | 'dark' | 'system';
@@ -26,12 +26,32 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
         setColorSchemeState(value as ColorScheme);
       }
     });
+
+    // Listen for app state changes to update theme
+    const subscription = AppState.addEventListener('change', (nextAppState: AppStateStatus) => {
+      if (nextAppState === 'active' && colorScheme === 'system') {
+        // Force re-render when app becomes active to catch system theme changes
+        setColorSchemeState('system');
+      }
+    });
+
+    return () => {
+      subscription.remove();
+    };
   }, []);
 
   const setColorScheme = async (scheme: ColorScheme) => {
     setColorSchemeState(scheme);
     await AsyncStorage.setItem(THEME_STORAGE_KEY, scheme);
   };
+
+  // Update immediately when system theme changes
+  useEffect(() => {
+    if (colorScheme === 'system') {
+      // Force re-render
+      setColorSchemeState('system');
+    }
+  }, [systemColorScheme]);
 
   const isDark = colorScheme === 'system' 
     ? systemColorScheme === 'dark'

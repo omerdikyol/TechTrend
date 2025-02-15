@@ -219,7 +219,7 @@ export default function NewsCard({
             loading="lazy"
           />
           <LinearGradient
-            colors={['transparent', 'rgba(0,0,0,0.8)']}
+            colors={['transparent', 'rgba(0,0,0,0.9)']} // Darker gradient for better readability
             style={styles.gradient}>
             <View style={styles.tagsContainer}>
               {item.tags.map((tag) => (
@@ -287,7 +287,7 @@ const styles = StyleSheet.create({
     height: CARD_HEIGHT,
     position: 'relative',
     borderRadius: 20,
-    backgroundColor: '#fff',
+    backgroundColor: 'transparent', // Remove white background
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
@@ -311,7 +311,7 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    height: '60%',
+    height: '75%', // Increase gradient height for better readability
     borderBottomLeftRadius: 20,
     borderBottomRightRadius: 20,
     padding: 20,
@@ -322,12 +322,18 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#fff',
     marginBottom: 8,
+    textShadowColor: 'rgba(0, 0, 0, 0.75)', // Add text shadow for better readability
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 3,
   },
   summary: {
     fontSize: 16,
     color: '#fff',
-    opacity: 0.8,
+    opacity: 0.9, // Increased opacity for better visibility
     marginBottom: 16,
+    textShadowColor: 'rgba(0, 0, 0, 0.75)', // Add text shadow for better readability
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 3,
   },
   footer: {
     flexDirection: 'row',
@@ -341,11 +347,12 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#fff',
     fontWeight: 'bold',
+    opacity: 0.95, // Increased opacity
   },
   time: {
     fontSize: 12,
     color: '#fff',
-    opacity: 0.8,
+    opacity: 0.9, // Increased opacity
   },
   hnStats: {
     flexDirection: 'row',
@@ -371,7 +378,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   tag: {
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    backgroundColor: 'rgba(255, 255, 255, 0.15)', // Slightly more visible in dark mode
     paddingHorizontal: 12,
     paddingVertical: 4,
     borderRadius: 16,
@@ -382,6 +389,7 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 12,
     fontWeight: '600',
+    opacity: 0.95, // Increased opacity for better visibility
   },
   indicator: {
     position: 'absolute',
