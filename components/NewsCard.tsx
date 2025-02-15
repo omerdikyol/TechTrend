@@ -7,6 +7,9 @@ import {
   Dimensions,
   Pressable,
   ViewStyle,
+  Share,
+  Alert,
+  GestureResponderEvent,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
@@ -50,6 +53,19 @@ interface NewsCardProps {
   style?: ViewStyle;
 }
 
+const handleShare = async (item: NewsItem, setIsPressed: (value: boolean) => void) => {
+  setIsPressed(true);
+  try {
+    await Share.share({
+      message: `${item.title}\n\nRead more at: ${item.url}`,
+      url: item.url, // iOS only
+      title: item.title, // Android only
+    });
+  } catch (error) {
+    Alert.alert('Error', 'Could not share the article');
+  }
+};
+
 export default function NewsCard({
   item,
   onSwipeLeft,
@@ -61,6 +77,7 @@ export default function NewsCard({
   const saveOpacity = useSharedValue(0);
   const dismissOpacity = useSharedValue(0);
   const isSwipeGesture = useSharedValue(false);
+  const isShareButtonPressed = useSharedValue(false);
 
   useEffect(() => {
     saveOpacity.value = 0;
@@ -68,9 +85,10 @@ export default function NewsCard({
   }, [item]);
 
   const tap = Gesture.Tap().onStart(() => {
-    if (!isSwipeGesture.value) {
+    if (!isSwipeGesture.value && !isShareButtonPressed.value) {
       runOnJS(router.push)(`/article/${item.id}`);
     }
+    isShareButtonPressed.value = false;
   });
 
   const pan = Gesture.Pan()
@@ -158,6 +176,22 @@ export default function NewsCard({
   return (
     <GestureDetector gesture={composed}>
       <Animated.View style={[styles.card, style, animatedStyle]}>
+        {/* Save Indicator */}
+        <Animated.View style={[styles.indicator, styles.saveIndicator, saveIndicatorStyle]}>
+          <View style={styles.indicatorContent}>
+            <Ionicons name="bookmark" size={40} color="white" />
+            <Text style={styles.indicatorText}>SAVE</Text>
+          </View>
+        </Animated.View>
+
+        {/* Skip Indicator */}
+        <Animated.View style={[styles.indicator, styles.skipIndicator, dismissIndicatorStyle]}>
+          <View style={styles.indicatorContent}>
+            <Ionicons name="close-circle" size={40} color="white" />
+            <Text style={styles.indicatorText}>SKIP</Text>
+          </View>
+        </Animated.View>
+
         <View style={styles.cardContent}>
           <Image source={{ uri: item.imageUrl }} style={styles.image} />
           <LinearGradient
@@ -182,7 +216,9 @@ export default function NewsCard({
                 </Text>
               </View>
               <View style={styles.actions}>
-                <Ionicons name="share-outline" size={24} color="white" />
+                <Pressable onPress={() => handleShare(item, (value) => isShareButtonPressed.value = value)}>
+                  <Ionicons name="share-outline" size={24} color="white" />
+                </Pressable>
                 <Ionicons
                   name="chatbubble-outline"
                   size={24}
@@ -192,21 +228,7 @@ export default function NewsCard({
               </View>
             </View>
             
-            {/* Swipe Indicators */}
-            <View style={styles.indicatorsContainer}>
-              <Animated.View style={[styles.indicator, styles.dismissIndicator, dismissIndicatorStyle]}>
-                <LinearGradient
-                  colors={['transparent', '#F44336']}
-                  style={styles.indicatorGradient}
-                />
-              </Animated.View>
-              <Animated.View style={[styles.indicator, styles.saveIndicator, saveIndicatorStyle]}>
-                <LinearGradient
-                  colors={['transparent', '#4CAF50']}
-                  style={styles.indicatorGradient}
-                />
-              </Animated.View>
-            </View>
+
           </LinearGradient>
         </View>
       </Animated.View>
@@ -214,10 +236,13 @@ export default function NewsCard({
   );
 }
 
+
+
 const styles = StyleSheet.create({
   card: {
     width: CARD_WIDTH,
     height: CARD_HEIGHT,
+    position: 'relative',
     borderRadius: 20,
     backgroundColor: '#fff',
     shadowColor: '#000',
@@ -301,27 +326,32 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '600',
   },
-  indicatorsContainer: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    height: 4,
-    flexDirection: 'row',
-    overflow: 'hidden',
-  },
   indicator: {
-    flex: 1,
-    height: '100%',
-  },
-  indicatorGradient: {
-    flex: 1,
-    borderRadius: 2,
-  },
-  dismissIndicator: {
-    marginRight: 2,
+    position: 'absolute',
+    top: '45%',
+    zIndex: 1000,
+    width: 100,
+    height: 100,
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   saveIndicator: {
-    marginLeft: 2,
+    right: 20,
+    backgroundColor: 'rgba(39, 174, 96, 0.8)',
+  },
+  skipIndicator: {
+    left: 20,
+    backgroundColor: 'rgba(231, 76, 60, 0.8)',
+  },
+  indicatorContent: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  indicatorText: {
+    color: 'white',
+    marginTop: 5,
+    fontWeight: 'bold',
+    fontSize: 16,
   },
 });

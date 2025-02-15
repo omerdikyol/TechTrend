@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, useColorScheme, Alert } from 'react-native';
+import { View, StyleSheet, useColorScheme, Text, Pressable } from 'react-native';
+import Background from '../../components/Background';
+import { useSavedArticles } from '../../context/SavedArticlesContext';
 import NewsCard, { NewsItem } from '../../components/NewsCard';
 
 // Mock data for demonstration
@@ -45,40 +47,56 @@ export default function DiscoverScreen() {
   const isDark = colorScheme === 'dark';
 
   const handleSwipeLeft = () => {
-    if (articles.length <= 1) return;
     setArticles((prevArticles) => prevArticles.slice(1));
   };
 
-  const handleSwipeRight = () => {
-    if (articles.length <= 1) return;
+  const { saveArticle } = useSavedArticles();
 
+  const handleSwipeRight = () => {
     // Save the current article
     const currentArticle = articles[0];
-    Alert.alert('Article Saved', `Saved: ${currentArticle.title}`);
+    saveArticle(currentArticle);
     
     // Remove the current card
     setArticles((prevArticles) => prevArticles.slice(1));
   };
 
+  const handleRefresh = () => {
+    setArticles(mockNews);
+  };
+
   return (
-    <View
-      style={[
-        styles.container,
-        { backgroundColor: isDark ? '#000000' : '#F5F5F5' },
-      ]}>
-      {articles.map((item, index) => (
-        <NewsCard
-          key={item.id}
-          item={item}
-          onSwipeLeft={handleSwipeLeft}
-          onSwipeRight={handleSwipeRight}
-          style={{
-            position: 'absolute',
-            zIndex: articles.length - index,
-          }}
-        />
-      ))}
-    </View>
+    <Background>
+      <View style={styles.container}>
+      {articles.length > 0 ? (
+        articles.map((item, index) => (
+          <NewsCard
+            key={item.id}
+            item={item}
+            onSwipeLeft={handleSwipeLeft}
+            onSwipeRight={handleSwipeRight}
+            style={{
+              position: 'absolute',
+              zIndex: articles.length - index,
+            }}
+          />
+        ))
+      ) : (
+        <View style={styles.emptyContainer}>
+          <Text style={[styles.emptyText, { color: isDark ? '#fff' : '#000' }]}>
+            No more articles to read
+          </Text>
+          <Pressable
+            style={[styles.refreshButton, { backgroundColor: isDark ? '#333' : '#e0e0e0' }]}
+            onPress={handleRefresh}>
+            <Text style={[styles.refreshButtonText, { color: isDark ? '#fff' : '#000' }]}>
+              Refresh Articles
+            </Text>
+          </Pressable>
+        </View>
+      )}
+      </View>
+    </Background>
   );
 }
 
@@ -87,5 +105,24 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    paddingHorizontal: 16,
+  },
+  emptyContainer: {
+    alignItems: 'center',
+    padding: 20,
+  },
+  emptyText: {
+    fontSize: 18,
+    marginBottom: 20,
+    textAlign: 'center',
+  },
+  refreshButton: {
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 8,
+  },
+  refreshButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
   },
 });
