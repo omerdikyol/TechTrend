@@ -6,20 +6,16 @@ import {
   FlatList,
   Pressable,
   Image,
-  SafeAreaView,
   ListRenderItem,
 } from 'react-native';
-import Background from '../../components/Background';
-import { useSavedArticles } from '../../context/SavedArticlesContext';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { formatDistanceToNow } from 'date-fns';
-import { NewsItem } from '../../components/NewsCard';
-import { useTheme } from '../../constants/theme';
-import ThemeToggle from '../../components/ThemeToggle';
-import Animated, { useAnimatedStyle, withSpring } from 'react-native-reanimated';
+import { NewsItem } from './NewsCard';
+import { useSavedArticles } from '../context/SavedArticlesContext';
+import { useTheme } from '../constants/theme';
 
-export default function SavedScreen() {
+export default function SavedArticles() {
   const { savedArticles, removeArticle } = useSavedArticles();
   const { isDark } = useTheme();
 
@@ -77,115 +73,39 @@ export default function SavedScreen() {
     </Pressable>
   );
 
-  const indicatorStyle = useAnimatedStyle(() => ({
-    transform: [{ translateX: withSpring(100) }],
-  }));
-
   return (
-    <Background>
-      <SafeAreaView style={styles.container}>
-        <View style={styles.header}>
-          <View style={styles.navigationContainer}>
-            <View style={[styles.tabBar, { backgroundColor: isDark ? '#333' : '#f0f0f0' }]}>
-              <Animated.View 
-                style={[
-                  styles.activeIndicator, 
-                  { backgroundColor: isDark ? '#fff' : '#000' },
-                  indicatorStyle
-                ]} 
-              />
-              <Pressable 
-                style={styles.tabButton} 
-                onPress={() => router.push('/')}
-              >
-                <Text style={[
-                  styles.tabText,
-                  { color: isDark ? '#999' : '#666' }
-                ]}>
-                  Discover
-                </Text>
-              </Pressable>
-              <Pressable 
-                style={styles.tabButton}
-              >
-                <Text style={[
-                  styles.tabText,
-                  { color: isDark ? '#fff' : '#000' }
-                ]}>
-                  Saved
-                </Text>
-              </Pressable>
-            </View>
-          </View>
-          <ThemeToggle />
-        </View>
-        {savedArticles.length > 0 ? (
-          <FlatList
-            data={savedArticles}
-            renderItem={renderItem}
-            keyExtractor={(item) => item.id}
-            contentContainerStyle={styles.list}
+    <View style={styles.container}>
+      {savedArticles.length > 0 ? (
+        <FlatList
+          data={savedArticles}
+          renderItem={renderItem}
+          keyExtractor={(item) => item.id}
+          contentContainerStyle={styles.list}
+        />
+      ) : (
+        <View style={styles.emptyContainer}>
+          <Ionicons
+            name="bookmark-outline"
+            size={64}
+            color={isDark ? '#333' : '#ccc'}
           />
-        ) : (
-          <View style={styles.emptyContainer}>
-            <Ionicons
-              name="bookmark-outline"
-              size={64}
-              color={isDark ? '#333' : '#ccc'}
-            />
-            <Text
-              style={[styles.emptyText, { color: isDark ? '#fff' : '#000' }]}>
-              No saved articles yet
-            </Text>
-            <Text
-              style={[styles.emptySubtext, { color: isDark ? '#ccc' : '#666' }]}>
-              Articles you save will appear here
-            </Text>
-          </View>
-        )}
-      </SafeAreaView>
-    </Background>
+          <Text
+            style={[styles.emptyText, { color: isDark ? '#fff' : '#000' }]}>
+            No saved articles yet
+          </Text>
+          <Text
+            style={[styles.emptySubtext, { color: isDark ? '#ccc' : '#666' }]}>
+            Articles you save will appear here
+          </Text>
+        </View>
+      )}
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingTop: 60,
-    paddingBottom: 16,
-  },
-  navigationContainer: {
-    flex: 1,
-    marginRight: 16,
-  },
-  tabBar: {
-    flexDirection: 'row',
-    borderRadius: 25,
-    position: 'relative',
-    height: 44,
-  },
-  activeIndicator: {
-    position: 'absolute',
-    width: '50%',
-    height: '100%',
-    borderRadius: 25,
-    opacity: 0.1,
-  },
-  tabButton: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    zIndex: 1,
-  },
-  tabText: {
-    fontSize: 16,
-    fontWeight: '600',
   },
   list: {
     padding: 20,

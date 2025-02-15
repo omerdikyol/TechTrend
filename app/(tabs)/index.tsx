@@ -1,22 +1,26 @@
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, useColorScheme, Text, Pressable, ActivityIndicator, RefreshControl, ScrollView } from 'react-native';
+import { View, StyleSheet, Text, Pressable, ActivityIndicator, RefreshControl, ScrollView, Dimensions } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import Animated, { useAnimatedStyle, withSpring } from 'react-native-reanimated';
 import Background from '../../components/Background';
-import { useSavedArticles } from '../../context/SavedArticlesContext';
+import SavedArticles from '../../components/SavedArticles';
 import NewsCard from '../../components/NewsCard';
 import { useNews } from '../../context/NewsContext';
 import { useTheme } from '../../constants/theme';
 import ThemeToggle from '../../components/ThemeToggle';
+import { useSavedArticles } from '../../context/SavedArticlesContext';
 
-export default function DiscoverScreen() {
+export default function MainScreen() {
   const { articles, isLoading, error, fetchNews } = useNews();
   const [refreshing, setRefreshing] = useState(false);
   const [currentArticles, setCurrentArticles] = useState(articles);
   const { isDark } = useTheme();
+  const [activeTab, setActiveTab] = useState('discover');
+  const { saveArticle } = useSavedArticles();
 
   useEffect(() => {
-    fetchNews(false); // Use cached data on initial load
+    fetchNews(false);
   }, []);
 
   useEffect(() => {
@@ -27,10 +31,7 @@ export default function DiscoverScreen() {
     setCurrentArticles((prevArticles) => prevArticles.slice(1));
   };
 
-  const { saveArticle } = useSavedArticles();
-
   const handleSwipeRight = () => {
-    // Save the current article
     if (currentArticles.length > 0) {
       saveArticle(currentArticles[0]);
       setCurrentArticles(prev => prev.slice(1));
@@ -39,7 +40,7 @@ export default function DiscoverScreen() {
 
   const onRefresh = React.useCallback(async () => {
     setRefreshing(true);
-    await fetchNews(true); // Force fresh data
+    await fetchNews(true);
     setRefreshing(false);
   }, [fetchNews]);
 
@@ -47,34 +48,34 @@ export default function DiscoverScreen() {
     fetchNews(true);
   };
 
-  return (
-    <Background>
-      <View style={styles.header}>
-        <Text style={[styles.headerTitle, { color: isDark ? '#fff' : '#000' }]}>Discover</Text>
-        <View style={styles.headerActions}>
-          <ThemeToggle />
-          <Pressable 
-            style={[styles.sourcesButton, { marginLeft: 8 }]}
-            onPress={() => router.push('/feeds')}>
-            <Ionicons 
-              name="layers-outline" 
-              size={24} 
-              color={isDark ? '#fff' : '#000'} 
-            />
-          </Pressable>
-        </View>
-      </View>
-      <ScrollView
-        style={styles.container}
-        contentContainerStyle={[styles.scrollContent, !currentArticles.length && { flex: 1 }]}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={onRefresh}
-            tintColor={isDark ? '#fff' : '#000'}
-          />
-        }
-      >
+  // Calculate tab width based on screen width
+  const tabWidth = (Dimensions.get('window').width - 32 - 16 - 80) / 2; // padding + margin + actions width
+
+  const indicatorStyle = useAnimatedStyle(() => ({
+    transform: [{ 
+      translateX: withSpring(activeTab === 'discover' ? 0 : tabWidth, {
+        mass: 1,
+        damping: 20,
+        stiffness: 200,
+        overshootClamping: false,
+        restDisplacementThreshold: 0.01,
+        restSpeedThreshold: 2
+      })
+    }],
+  }));
+
+  const renderDiscoverContent = () => (
+    <ScrollView
+      style={styles.container}
+      contentContainerStyle={[styles.scrollContent, !currentArticles.length && { flex: 1 }]}
+      refreshControl={
+        <RefreshControl
+          refreshing={refreshing}
+          onRefresh={onRefresh}
+          tintColor={isDark ? '#fff' : '#000'}
+        />
+      }
+    >
       {isLoading ? (
         <View style={styles.centerContainer}>
           <ActivityIndicator size="large" color={isDark ? '#fff' : '#000'} />
@@ -119,7 +120,60 @@ export default function DiscoverScreen() {
           </Pressable>
         </View>
       )}
-      </ScrollView>
+    </ScrollView>
+  );
+
+  return (
+    <Background>
+      <View style={styles.header}>
+        <View style={styles.navigationContainer}>
+          <View style={[styles.tabBar, { backgroundColor: isDark ? '#333' : '#f0f0f0' }]}>
+            <Animated.View 
+              style={[
+                styles.activeIndicator, 
+                { backgroundColor: isDark ? '#fff' : '#000' },
+                indicatorStyle
+              ]} 
+            />
+            <Pressable 
+              style={styles.tabButton} 
+              onPress={() => setActiveTab('discover')}
+            >
+              <Text style={[
+                styles.tabText,
+                { color: activeTab === 'discover' ? (isDark ? '#fff' : '#000') : (isDark ? '#999' : '#666') }
+              ]}>
+                Discover
+              </Text>
+            </Pressable>
+            <Pressable 
+              style={styles.tabButton}
+              onPress={() => setActiveTab('saved')}
+            >
+              <Text style={[
+                styles.tabText,
+                { color: activeTab === 'saved' ? (isDark ? '#fff' : '#000') : (isDark ? '#999' : '#666') }
+              ]}>
+                Saved
+              </Text>
+            </Pressable>
+          </View>
+        </View>
+        <View style={styles.headerActions}>
+          <ThemeToggle />
+          <Pressable 
+            style={[styles.sourcesButton, { marginLeft: 8 }]}
+            onPress={() => router.push('/feeds')}>
+            <Ionicons 
+              name="layers-outline" 
+              size={24} 
+              color={isDark ? '#fff' : '#000'} 
+            />
+          </Pressable>
+        </View>
+      </View>
+      
+      {activeTab === 'discover' ? renderDiscoverContent() : <SavedArticles />}
     </Background>
   );
 }
@@ -147,13 +201,7 @@ const styles = StyleSheet.create({
   },
   container: {
     flex: 1,
-    // justifyContent: 'center',
-    // alignItems: 'center',
     paddingHorizontal: 16,
-  },
-  emptyContainer: {
-    alignItems: 'center',
-    padding: 20,
   },
   emptyText: {
     fontSize: 18,
@@ -177,9 +225,32 @@ const styles = StyleSheet.create({
     paddingTop: 60,
     paddingBottom: 16,
   },
-  headerTitle: {
-    fontSize: 28,
-    fontWeight: 'bold',
+  navigationContainer: {
+    flex: 1,
+    marginRight: 16,
+  },
+  tabBar: {
+    flexDirection: 'row',
+    borderRadius: 25,
+    position: 'relative',
+    height: 44,
+  },
+  activeIndicator: {
+    position: 'absolute',
+    width: '50%',
+    height: '100%',
+    borderRadius: 25,
+    opacity: 0.1,
+  },
+  tabButton: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 1,
+  },
+  tabText: {
+    fontSize: 16,
+    fontWeight: '600',
   },
   headerActions: {
     flexDirection: 'row',
