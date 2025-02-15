@@ -157,20 +157,29 @@ export default function NewsCard({
       { translateX: translateX.value },
       { rotate: `${rotation.value * 15}deg` },
     ],
-  }));
+  }), []); // Add empty dependency array
 
   const saveIndicatorStyle = useAnimatedStyle(() => ({
     opacity: saveOpacity.value,
-    transform: [
-      { 
-        scale: interpolate(
-          saveOpacity.value,
-          [0, 1],
-          [0.8, 1.2]
-        )
-      }
-    ],
-  }));
+    transform: [{ 
+      scale: interpolate(
+        saveOpacity.value,
+        [0, 1],
+        [0.8, 1.2]
+      )
+    }],
+  }), []); // Add empty dependency array
+
+  const dismissIndicatorStyle = useAnimatedStyle(() => ({
+    opacity: dismissOpacity.value,
+    transform: [{ 
+      scale: interpolate(
+        dismissOpacity.value,
+        [0, 1],
+        [0.8, 1.2]
+      )
+    }],
+  }), []); // Add empty dependency array
 
   const handlePress = () => {
     if (!isSwipeGesture.value) {
@@ -178,22 +187,12 @@ export default function NewsCard({
     }
   };
 
-  const dismissIndicatorStyle = useAnimatedStyle(() => ({
-    opacity: dismissOpacity.value,
-    transform: [
-      { 
-        scale: interpolate(
-          dismissOpacity.value,
-          [0, 1],
-          [0.8, 1.2]
-        )
-      }
-    ],
-  }));
-
   return (
     <GestureDetector gesture={composed}>
-      <Animated.View style={[styles.card, style, animatedStyle]}>
+      <Animated.View 
+        style={[styles.card, style, animatedStyle]}
+        collapsable={false} // Optimize native animation performance
+      >
         {/* Save Indicator */}
         <Animated.View style={[styles.indicator, styles.saveIndicator, saveIndicatorStyle]}>
           <View style={styles.indicatorContent}>
@@ -211,7 +210,14 @@ export default function NewsCard({
         </Animated.View>
 
         <View style={styles.cardContent}>
-          <Image source={{ uri: item.imageUrl }} style={styles.image} />
+          <Image 
+            source={{ 
+              uri: item.imageUrl,
+              cache: 'force-cache' // Add image caching
+            }} 
+            style={styles.image}
+            loading="lazy"
+          />
           <LinearGradient
             colors={['transparent', 'rgba(0,0,0,0.8)']}
             style={styles.gradient}>

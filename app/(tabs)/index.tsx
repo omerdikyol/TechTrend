@@ -3,13 +3,14 @@ import { View, StyleSheet, Text, Pressable, ActivityIndicator, RefreshControl, S
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { useAnimatedStyle, withSpring } from 'react-native-reanimated';
-import Background from '../../components/Background';
-import SavedArticles from '../../components/SavedArticles';
 import NewsCard from '../../components/NewsCard';
 import { useNews } from '../../context/NewsContext';
 import { useTheme } from '../../constants/theme';
 import ThemeToggle from '../../components/ThemeToggle';
 import { useSavedArticles } from '../../context/SavedArticlesContext';
+import SavedArticles from '@/components/SavedArticles';
+
+const MAX_VISIBLE_CARDS = 3; // Only show 3 cards at a time for better performance
 
 export default function MainScreen() {
   const { articles, isLoading, error, fetchNews } = useNews();
@@ -18,9 +19,10 @@ export default function MainScreen() {
   const { isDark } = useTheme();
   const [activeTab, setActiveTab] = useState('discover');
   const { saveArticle } = useSavedArticles();
+  const [hasInitiallyLoaded, setHasInitiallyLoaded] = useState(false);
 
   useEffect(() => {
-    fetchNews(false);
+    fetchNews(false).then(() => setHasInitiallyLoaded(true));
   }, []);
 
   useEffect(() => {
@@ -48,15 +50,15 @@ export default function MainScreen() {
     fetchNews(true);
   };
 
-  // Calculate tab width based on screen width
-  const tabWidth = (Dimensions.get('window').width - 32 - 16 - 80) / 2; // padding + margin + actions width
+  // Calculate tab width based on screen width minus padding
+  const tabWidth = (Dimensions.get('window').width - 32 - 82) / 2; // horizontal padding + right elements width
 
   const indicatorStyle = useAnimatedStyle(() => ({
     transform: [{ 
       translateX: withSpring(activeTab === 'discover' ? 0 : tabWidth, {
-        mass: 1,
-        damping: 20,
-        stiffness: 200,
+        mass: 0.5,
+        damping: 12,
+        stiffness: 100,
         overshootClamping: false,
         restDisplacementThreshold: 0.01,
         restSpeedThreshold: 2
@@ -64,10 +66,12 @@ export default function MainScreen() {
     }],
   }));
 
+  const visibleArticles = currentArticles.slice(0, MAX_VISIBLE_CARDS);
+
   const renderDiscoverContent = () => (
     <ScrollView
       style={styles.container}
-      contentContainerStyle={[styles.scrollContent, !currentArticles.length && { flex: 1 }]}
+      contentContainerStyle={[styles.scrollContent, !visibleArticles.length && { flex: 1 }]}
       refreshControl={
         <RefreshControl
           refreshing={refreshing}
@@ -76,9 +80,15 @@ export default function MainScreen() {
         />
       }
     >
-      {isLoading ? (
+      {isLoading && !hasInitiallyLoaded ? (
         <View style={styles.centerContainer}>
           <ActivityIndicator size="large" color={isDark ? '#fff' : '#000'} />
+          <Text style={[styles.loadingText, { color: isDark ? '#ccc' : '#666' }]}>
+            Finding interesting articles for you...
+          </Text>
+          <Text style={[styles.loadingSubtext, { color: isDark ? '#999' : '#888' }]}>
+            This might take a moment
+          </Text>
         </View>
       ) : error ? (
         <View style={styles.centerContainer}>
@@ -93,23 +103,18 @@ export default function MainScreen() {
             </Text>
           </Pressable>
         </View>
-      ) : currentArticles.length > 0 ? (
-        currentArticles.map((item, index) => (
-          <NewsCard
-            key={item.id}
-            item={item}
-            onSwipeLeft={handleSwipeLeft}
-            onSwipeRight={handleSwipeRight}
-            style={{
-              position: 'absolute',
-              zIndex: currentArticles.length - index,
-            }}
-          />
-        ))
-      ) : (
+      ) : hasInitiallyLoaded && visibleArticles.length === 0 ? (
         <View style={styles.centerContainer}>
+          <Ionicons 
+            name="reload-circle-outline" 
+            size={64} 
+            color={isDark ? '#333' : '#ccc'}
+          />
           <Text style={[styles.emptyText, { color: isDark ? '#fff' : '#000' }]}>
             No more articles to read
+          </Text>
+          <Text style={[styles.emptySubtext, { color: isDark ? '#ccc' : '#666', marginBottom: 16 }]}>
+            Pull down to refresh and get new articles
           </Text>
           <Pressable
             style={[styles.refreshButton, { backgroundColor: isDark ? '#333' : '#e0e0e0' }]}
@@ -119,66 +124,92 @@ export default function MainScreen() {
             </Text>
           </Pressable>
         </View>
+      ) : (
+        visibleArticles.map((item, index) => (
+          <NewsCard
+            key={item.id}
+            item={item}
+            onSwipeLeft={handleSwipeLeft}
+            onSwipeRight={handleSwipeRight}
+            style={{
+              position: 'absolute',
+              zIndex: visibleArticles.length - index,
+            }}
+          />
+        ))
+      )}
+      {isLoading && hasInitiallyLoaded && (
+        <View style={[styles.overlayLoading, { backgroundColor: isDark ? 'rgba(0,0,0,0.7)' : 'rgba(255,255,255,0.7)' }]}>
+          <ActivityIndicator size="large" color={isDark ? '#fff' : '#000'} />
+        </View>
       )}
     </ScrollView>
   );
 
   return (
-    <Background>
-      <View style={styles.header}>
-        <View style={styles.navigationContainer}>
-          <View style={[styles.tabBar, { backgroundColor: isDark ? '#333' : '#f0f0f0' }]}>
-            <Animated.View 
-              style={[
-                styles.activeIndicator, 
-                { backgroundColor: isDark ? '#fff' : '#000' },
-                indicatorStyle
-              ]} 
-            />
+      <View style={styles.mainContainer}>
+        <View style={styles.header}>
+          <View style={styles.navigationContainer}>
+            <View style={[styles.tabBar, { backgroundColor: isDark ? '#333' : '#f0f0f0' }]}>
+              <Animated.View 
+                style={[
+                  styles.activeIndicator, 
+                  { backgroundColor: isDark ? '#fff' : '#000' },
+                  indicatorStyle
+                ]} 
+              />
+              <Pressable 
+                style={styles.tabButton} 
+                onPress={() => setActiveTab('discover')}
+              >
+                <Text style={[
+                  styles.tabText,
+                  { color: activeTab === 'discover' ? (isDark ? '#fff' : '#000') : (isDark ? '#999' : '#666') }
+                ]}>
+                  Discover
+                </Text>
+              </Pressable>
+              <Pressable 
+                style={styles.tabButton}
+                onPress={() => setActiveTab('saved')}
+              >
+                <Text style={[
+                  styles.tabText,
+                  { color: activeTab === 'saved' ? (isDark ? '#fff' : '#000') : (isDark ? '#999' : '#666') }
+                ]}>
+                  Saved
+                </Text>
+              </Pressable>
+            </View>
+          </View>
+          <View style={styles.headerActions}>
+            <ThemeToggle />
             <Pressable 
-              style={styles.tabButton} 
-              onPress={() => setActiveTab('discover')}
-            >
-              <Text style={[
-                styles.tabText,
-                { color: activeTab === 'discover' ? (isDark ? '#fff' : '#000') : (isDark ? '#999' : '#666') }
-              ]}>
-                Discover
-              </Text>
-            </Pressable>
-            <Pressable 
-              style={styles.tabButton}
-              onPress={() => setActiveTab('saved')}
-            >
-              <Text style={[
-                styles.tabText,
-                { color: activeTab === 'saved' ? (isDark ? '#fff' : '#000') : (isDark ? '#999' : '#666') }
-              ]}>
-                Saved
-              </Text>
+              style={[styles.sourcesButton, { marginLeft: 8 }]}
+              onPress={() => router.push('/feeds')}>
+              <Ionicons 
+                name="layers-outline" 
+                size={24} 
+                color={isDark ? '#fff' : '#000'} 
+              />
             </Pressable>
           </View>
         </View>
-        <View style={styles.headerActions}>
-          <ThemeToggle />
-          <Pressable 
-            style={[styles.sourcesButton, { marginLeft: 8 }]}
-            onPress={() => router.push('/feeds')}>
-            <Ionicons 
-              name="layers-outline" 
-              size={24} 
-              color={isDark ? '#fff' : '#000'} 
-            />
-          </Pressable>
+        
+        <View style={styles.content}>
+          {activeTab === 'discover' ? renderDiscoverContent() : <SavedArticles />}
         </View>
       </View>
-      
-      {activeTab === 'discover' ? renderDiscoverContent() : <SavedArticles />}
-    </Background>
   );
 }
 
 const styles = StyleSheet.create({
+  mainContainer: {
+    flex: 1,
+  },
+  content: {
+    flex: 1,
+  },
   scrollContent: {
     flexGrow: 1,
     justifyContent: 'center',
@@ -259,5 +290,31 @@ const styles = StyleSheet.create({
   sourcesButton: {
     padding: 8,
     borderRadius: 20,
+  },
+  loadingText: {
+    fontSize: 18,
+    marginTop: 16,
+    textAlign: 'center',
+    fontWeight: '600',
+  },
+  loadingSubtext: {
+    fontSize: 14,
+    marginTop: 8,
+    textAlign: 'center',
+  },
+  emptySubtext: {
+    fontSize: 14,
+    textAlign: 'center',
+    maxWidth: '80%',
+  },
+  overlayLoading: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 1000,
   },
 });

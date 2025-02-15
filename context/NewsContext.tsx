@@ -17,18 +17,32 @@ export function NewsProvider({ children }: { children: React.ReactNode }) {
   const [articles, setArticles] = useState<NewsItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [lastFetchTime, setLastFetchTime] = useState<number>(0);
+  const FETCH_COOLDOWN = 30000; // 30 seconds cooldown between fetches
 
   const fetchNews = useCallback(async (forceFresh: boolean = false) => {
+    const now = Date.now();
     if (isLoading) return; // Prevent multiple simultaneous fetches
+    if (!forceFresh && now - lastFetchTime < FETCH_COOLDOWN) {
+      console.log('Skipping fetch due to cooldown');
+      return;
+    }
     
     try {
       setIsLoading(true);
       setError(null);
+      setLastFetchTime(now);
       
       const news = await newsFeedService.fetchAllFeeds(forceFresh);
       console.log('Fetched news articles:', news.length);
-      const articlesWithImages = await Promise.all(
-        news.map(async (article) => {
+      
+      // Process images in smaller batches to prevent memory issues
+      const batchSize = 5;
+      const processedArticles: NewsItem[] = [];
+      
+      for (let i = 0; i < news.length; i += batchSize) {
+        const batch = news.slice(i, i + batchSize);
+        const batchPromises = batch.map(async (article) => {
           if (!article.imageUrl) {
             const relatedImage = await imageService.getRelatedImage(
               article.title,
@@ -42,17 +56,23 @@ export function NewsProvider({ children }: { children: React.ReactNode }) {
             }
           }
           return article;
-        })
-      );
+        });
+        
+        const processedBatch = await Promise.all(batchPromises);
+        processedArticles.push(...processedBatch);
+        
+        // Update articles progressively as batches complete
+        setArticles(prev => [...processedArticles, ...prev.slice(processedArticles.length)]);
+      }
       
-      setArticles(articlesWithImages);
+      setArticles(processedArticles);
     } catch (err) {
       setError('Failed to fetch news. Please try again later.');
       console.error('Error fetching news:', err);
     } finally {
       setIsLoading(false);
     }
-  }, [articles.length]);
+  }, [isLoading, lastFetchTime]);
 
   const clearArticles = useCallback(() => {
     setArticles([]);
