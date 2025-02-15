@@ -13,11 +13,32 @@ export interface UnsplashImage {
 }
 
 class ImageService {
+  private readonly DEFAULT_IMAGES = [
+    'https://images.unsplash.com/photo-1461749280684-dccba630e2f6?w=800&q=80', // coding
+    'https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=800&q=80', // laptop code
+    'https://images.unsplash.com/photo-1555066931-4365d14bab8c?w=800&q=80', // code on screen
+    'https://images.unsplash.com/photo-1517694712202-14dd9538aa97?w=800&q=80', // laptop lifestyle
+    'https://images.unsplash.com/photo-1563986768711-b3bde3dc821e?w=800&q=80', // desk setup
+  ];
+
+  private getRandomDefaultImage(): string {
+    const index = Math.floor(Math.random() * this.DEFAULT_IMAGES.length);
+    return this.DEFAULT_IMAGES[index];
+  }
+
   private async searchImage(query: string): Promise<UnsplashImage | null> {
     if (!UNSPLASH_API_KEY) {
-      console.error('Unsplash API key not configured');
-      return null;
+      console.warn('Unsplash API key not configured, using default images');
+      return {
+        id: 'default',
+        urls: {
+          regular: this.getRandomDefaultImage(),
+          small: this.getRandomDefaultImage()
+        },
+        alt_description: 'Default tech image'
+      };
     }
+
     try {
       const response = await axios.get(`${UNSPLASH_API_URL}/search/photos`, {
         params: {
@@ -42,8 +63,15 @@ class ImageService {
       }
       return null;
     } catch (error) {
-      console.error('Error fetching image from Unsplash:', error);
-      return null;
+      console.warn('Error fetching image from Unsplash:', error);
+      return {
+        id: 'default',
+        urls: {
+          regular: this.getRandomDefaultImage(),
+          small: this.getRandomDefaultImage()
+        },
+        alt_description: 'Default tech image'
+      };
     }
   }
 
@@ -118,22 +146,11 @@ class ImageService {
         return titleImage.urls.regular;
       }
 
-      // If still no image, use a rotating set of tech-related queries
-      const defaultQueries = [
-        'programming code screen',
-        'software development workspace',
-        'technology computer modern',
-        'coding developer setup',
-        'tech workspace modern'
-      ];
-      
-      const randomQuery = defaultQueries[Math.floor(Math.random() * defaultQueries.length)];
-      const defaultImage = await this.searchImage(randomQuery);
-      const imageUrl = defaultImage?.urls.regular;
-      return imageUrl;
+      // If still no image, use a default tech-related image
+      return this.getRandomDefaultImage();
     } catch (error) {
       console.error('Error getting related image:', error);
-      return null;
+      return this.getRandomDefaultImage();
     }
   }
 }

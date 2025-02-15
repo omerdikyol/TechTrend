@@ -7,7 +7,7 @@ export default function FeedsScreen() {
     <>
       <Stack.Screen
         options={{
-          title: 'Manage Feeds',
+          headerShown: false,
         }}
       />
       <FeedManager />

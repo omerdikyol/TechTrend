@@ -9,6 +9,7 @@ export interface CustomFeed {
   name: string;
   url: string;
   type: 'rss' | 'api';
+  enabled: boolean;
 }
 
 class NewsFeedService {
@@ -18,12 +19,56 @@ class NewsFeedService {
       name: 'Hacker News',
       url: 'https://hnrss.org/frontpage',
       type: 'rss',
+      enabled: true,
     },
     {
       id: 'devto',
       name: 'Dev.to',
       url: 'https://dev.to/feed',
       type: 'rss',
+      enabled: true,
+    },
+    {
+      id: 'techcrunch',
+      name: 'TechCrunch',
+      url: 'https://techcrunch.com/feed/',
+      type: 'rss',
+      enabled: true,
+    },
+    {
+      id: 'css-tricks',
+      name: 'CSS-Tricks',
+      url: 'https://css-tricks.com/feed/',
+      type: 'rss',
+      enabled: true,
+    },
+    {
+      id: 'smashing',
+      name: 'Smashing Magazine',
+      url: 'https://www.smashingmagazine.com/feed/',
+      type: 'rss',
+      enabled: true,
+    },
+    {
+      id: 'reddit-programming',
+      name: 'Reddit Programming',
+      url: 'https://www.reddit.com/r/programming/.rss',
+      type: 'rss',
+      enabled: true,
+    },
+    {
+      id: 'github-blog',
+      name: 'GitHub Blog',
+      url: 'https://github.blog/feed/',
+      type: 'rss',
+      enabled: true,
+    },
+    {
+      id: 'web-dev',
+      name: 'web.dev',
+      url: 'https://web.dev/feed.xml',
+      type: 'rss',
+      enabled: true,
     },
   ];
 
@@ -34,7 +79,7 @@ class NewsFeedService {
   }
 
   async fetchAllFeeds(forceFresh: boolean = false): Promise<NewsItem[]> {
-    const allFeeds = [...this.defaultFeeds, ...this.customFeeds];
+    const allFeeds = [...this.defaultFeeds, ...this.customFeeds].filter(feed => feed.enabled);
     const newsPromises = allFeeds.map(feed => this.fetchFeed(feed, forceFresh));
     const results = await Promise.all(newsPromises);
     const flatResults = results.flat();
@@ -196,9 +241,29 @@ class NewsFeedService {
     const newFeed = {
       ...feed,
       id: Math.random().toString(),
+      enabled: true,
     };
     this.customFeeds.push(newFeed);
     return newFeed;
+  }
+
+  toggleFeed(id: string, enabled: boolean): void {
+    // Try to find and update in default feeds
+    const defaultFeedIndex = this.defaultFeeds.findIndex(feed => feed.id === id);
+    if (defaultFeedIndex !== -1) {
+      this.defaultFeeds[defaultFeedIndex].enabled = enabled;
+      return;
+    }
+
+    // Try to find and update in custom feeds
+    const customFeedIndex = this.customFeeds.findIndex(feed => feed.id === id);
+    if (customFeedIndex !== -1) {
+      this.customFeeds[customFeedIndex].enabled = enabled;
+    }
+  }
+
+  getAllFeeds(): CustomFeed[] {
+    return [...this.defaultFeeds, ...this.customFeeds];
   }
 
   removeCustomFeed(id: string): void {

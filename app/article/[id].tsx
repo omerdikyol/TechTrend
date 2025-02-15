@@ -24,7 +24,7 @@ import CodeBlock from '../../components/CodeBlock';
 export default function ArticleDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { articles } = useNews();
-  const { savedArticles } = useSavedArticles();
+  const { savedArticles, saveArticle, removeArticle, isSaved } = useSavedArticles();
   
   // First try to find the article in the main articles list, then in saved articles
   const article = [...articles, ...savedArticles].find((a) => a.id === id);
@@ -48,7 +48,13 @@ export default function ArticleDetailScreen() {
     }
   };
 
-
+  const handleToggleSave = () => {
+    if (isSaved(article.id)) {
+      removeArticle(article.id);
+    } else {
+      saveArticle(article);
+    }
+  };
 
   return (
     <Background>
@@ -72,9 +78,12 @@ export default function ArticleDetailScreen() {
                 color={isDark ? '#fff' : '#000'}
               />
             </Pressable>
-            <Pressable style={styles.actionButton}>
+            <Pressable 
+              style={styles.actionButton}
+              onPress={handleToggleSave}
+            >
               <Ionicons
-                name="bookmark-outline"
+                name={isSaved(article.id) ? "bookmark" : "bookmark-outline"}
                 size={24}
                 color={isDark ? '#fff' : '#000'}
               />
