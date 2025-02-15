@@ -28,6 +28,7 @@ import {
   PanGestureHandlerEventPayload,
 } from 'react-native-gesture-handler';
 import { formatDistanceToNow } from 'date-fns';
+import { cleanHtml } from '../utils/htmlParser';
 import { router } from 'expo-router';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
@@ -44,6 +45,9 @@ export interface NewsItem {
   publishedAt: Date;
   tags: string[];
   url: string;
+  commentsUrl?: string;
+  points?: number;
+  commentCount?: number;
 }
 
 interface NewsCardProps {
@@ -84,18 +88,26 @@ export default function NewsCard({
     dismissOpacity.value = 0;
   }, [item]);
 
-  const tap = Gesture.Tap().onStart(() => {
-    if (!isSwipeGesture.value && !isShareButtonPressed.value) {
-      runOnJS(router.push)(`/article/${item.id}`);
-    }
-    isShareButtonPressed.value = false;
-  });
+  const tap = Gesture.Tap()
+    .onStart(() => {
+      'worklet';
+      if (!isSwipeGesture.value && !isShareButtonPressed.value) {
+        runOnJS(router.push)({ pathname: '/article/[id]', params: { id: item.id } });
+      }
+    })
+    .onFinalize(() => {
+      'worklet';
+      isShareButtonPressed.value = false;
+      isSwipeGesture.value = false;
+    });
 
   const pan = Gesture.Pan()
     .onBegin(() => {
+      'worklet';
       isSwipeGesture.value = false;
     })
     .onUpdate((event) => {
+      'worklet';
       if (Math.abs(event.translationX) > 10) {
         isSwipeGesture.value = true;
       }
@@ -160,6 +172,12 @@ export default function NewsCard({
     ],
   }));
 
+  const handlePress = () => {
+    if (!isSwipeGesture.value) {
+      router.push(`/article/${item.id}`);
+    }
+  };
+
   const dismissIndicatorStyle = useAnimatedStyle(() => ({
     opacity: dismissOpacity.value,
     transform: [
@@ -206,7 +224,7 @@ export default function NewsCard({
             </View>
             <Text style={styles.title}>{item.title}</Text>
             <Text style={styles.summary} numberOfLines={2}>
-              {item.summary}
+              {cleanHtml(item.summary)}
             </Text>
             <View style={styles.footer}>
               <View style={styles.sourceContainer}>
@@ -216,15 +234,34 @@ export default function NewsCard({
                 </Text>
               </View>
               <View style={styles.actions}>
-                <Pressable onPress={() => handleShare(item, (value) => isShareButtonPressed.value = value)}>
-                  <Ionicons name="share-outline" size={24} color="white" />
-                </Pressable>
-                <Ionicons
-                  name="chatbubble-outline"
-                  size={24}
-                  color="white"
-                  style={{ marginLeft: 16 }}
-                />
+                {item.source === 'Hacker News' ? (
+                  <View style={styles.hnStats}>
+                    {item.points !== undefined && (
+                      <View style={styles.hnStat}>
+                        <Ionicons name="arrow-up" size={16} color="white" />
+                        <Text style={styles.hnStatText}>{item.points}</Text>
+                      </View>
+                    )}
+                    {item.commentCount !== undefined && (
+                      <View style={styles.hnStat}>
+                        <Ionicons name="chatbubble-outline" size={16} color="white" />
+                        <Text style={styles.hnStatText}>{item.commentCount}</Text>
+                      </View>
+                    )}
+                  </View>
+                ) : (
+                  <>
+                    <Pressable onPress={() => handleShare(item, (value) => isShareButtonPressed.value = value)}>
+                      <Ionicons name="share-outline" size={24} color="white" />
+                    </Pressable>
+                    <Ionicons
+                      name="chatbubble-outline"
+                      size={24}
+                      color="white"
+                      style={{ marginLeft: 16 }}
+                    />
+                  </>
+                )}
               </View>
             </View>
             
@@ -303,6 +340,20 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#fff',
     opacity: 0.8,
+  },
+  hnStats: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  hnStat: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  hnStatText: {
+    color: 'white',
+    fontSize: 14,
   },
   actions: {
     flexDirection: 'row',

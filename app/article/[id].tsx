@@ -10,16 +10,29 @@ import {
   Share,
   Alert,
   SafeAreaView,
+  Linking,
 } from 'react-native';
 import Background from '../../components/Background';
 import { useLocalSearchParams, router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { formatDistanceToNow } from 'date-fns';
-import { mockNews } from '../(tabs)/index';
+import { useNews } from '../../context/NewsContext';
+import { useSavedArticles } from '../../context/SavedArticlesContext';
+import { parseHtml, styles as htmlStyles } from '../../utils/htmlParser';
+import CodeBlock from '../../components/CodeBlock';
 
 export default function ArticleDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const article = mockNews.find((a) => a.id === id);
+  const { articles } = useNews();
+  const { savedArticles } = useSavedArticles();
+  
+  // First try to find the article in the main articles list, then in saved articles
+  const article = [...articles, ...savedArticles].find((a) => a.id === id);
+
+  if (!article) {
+    router.back();
+    return null;
+  }
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
 
@@ -35,15 +48,7 @@ export default function ArticleDetailScreen() {
     }
   };
 
-  if (!article) {
-    return (
-      <View style={styles.container}>
-        <Text style={[styles.text, { color: isDark ? '#fff' : '#000' }]}>
-          Article not found
-        </Text>
-      </View>
-    );
-  }
+
 
   return (
     <Background>
@@ -57,6 +62,16 @@ export default function ArticleDetailScreen() {
             />
           </Pressable>
           <View style={styles.headerActions}>
+            <Pressable 
+              style={styles.actionButton}
+              onPress={() => Linking.openURL(article.url)}
+            >
+              <Ionicons
+                name="globe-outline"
+                size={24}
+                color={isDark ? '#fff' : '#000'}
+              />
+            </Pressable>
             <Pressable style={styles.actionButton}>
               <Ionicons
                 name="bookmark-outline"
@@ -64,6 +79,18 @@ export default function ArticleDetailScreen() {
                 color={isDark ? '#fff' : '#000'}
               />
             </Pressable>
+            {article.source === 'Hacker News' && article.commentsUrl && (
+              <Pressable 
+                style={styles.actionButton}
+                onPress={() => Linking.openURL(article.commentsUrl!)}
+              >
+                <Ionicons
+                  name="chatbubble-outline"
+                  size={24}
+                  color={isDark ? '#fff' : '#000'}
+                />
+              </Pressable>
+            )}
             <Pressable style={styles.actionButton} onPress={handleShare}>
               <Ionicons
                 name="share-outline"
@@ -76,6 +103,34 @@ export default function ArticleDetailScreen() {
         <ScrollView style={styles.content}>
           <Image source={{ uri: article.imageUrl }} style={styles.image} />
           <View style={styles.articleContent}>
+            {article.source === 'Hacker News' && (
+              <View style={styles.hnStatsContainer}>
+                {article.points !== undefined && (
+                  <View style={styles.hnStat}>
+                    <Ionicons
+                      name="arrow-up"
+                      size={16}
+                      color={isDark ? '#fff' : '#000'}
+                    />
+                    <Text style={[styles.hnStatText, { color: isDark ? '#fff' : '#000' }]}>
+                      {article.points} points
+                    </Text>
+                  </View>
+                )}
+                {article.commentCount !== undefined && (
+                  <View style={styles.hnStat}>
+                    <Ionicons
+                      name="chatbubble-outline"
+                      size={16}
+                      color={isDark ? '#fff' : '#000'}
+                    />
+                    <Text style={[styles.hnStatText, { color: isDark ? '#fff' : '#000' }]}>
+                      {article.commentCount} comments
+                    </Text>
+                  </View>
+                )}
+              </View>
+            )}
             <View style={styles.tagsContainer}>
               {article.tags.map((tag) => (
                 <View
@@ -117,13 +172,27 @@ export default function ArticleDetailScreen() {
                 {formatDistanceToNow(article.publishedAt, { addSuffix: true })}
               </Text>
             </View>
-            <Text
-              style={[
-                styles.summary,
-                { color: isDark ? '#fff' : '#000' },
-              ]}>
-              {article.summary}
-            </Text>
+            <View style={styles.summaryContainer}>
+              {parseHtml(article.summary).map((part, index) => (
+                <React.Fragment key={index}>
+                  {part.type === 'text' ? (
+                    <Text
+                      style={[
+                        styles.summaryText,
+                        { color: isDark ? '#fff' : '#000' },
+                        htmlStyles.paragraph
+                      ]}>
+                      {part.content}
+                    </Text>
+                  ) : (
+                    <CodeBlock
+                      code={part.content}
+                      language={part.language}
+                    />
+                  )}
+                </React.Fragment>
+              ))}
+            </View>
           </View>
         </ScrollView>
       </SafeAreaView>
@@ -165,6 +234,20 @@ const styles = StyleSheet.create({
   articleContent: {
     padding: 16,
   },
+  hnStatsContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 16,
+    marginBottom: 12,
+  },
+  hnStat: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  hnStatText: {
+    fontSize: 14,
+  },
   tagsContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -199,7 +282,10 @@ const styles = StyleSheet.create({
   date: {
     fontSize: 14,
   },
-  summary: {
+  summaryContainer: {
+    marginTop: 16,
+  },
+  summaryText: {
     fontSize: 18,
     lineHeight: 28,
   },

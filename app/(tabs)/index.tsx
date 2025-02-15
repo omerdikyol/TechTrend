@@ -1,75 +1,79 @@
-import React, { useState } from 'react';
-import { View, StyleSheet, useColorScheme, Text, Pressable } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, StyleSheet, useColorScheme, Text, Pressable, ActivityIndicator, RefreshControl, ScrollView } from 'react-native';
 import Background from '../../components/Background';
 import { useSavedArticles } from '../../context/SavedArticlesContext';
-import NewsCard, { NewsItem } from '../../components/NewsCard';
+import NewsCard from '../../components/NewsCard';
+import { useNews } from '../../context/NewsContext';
 
-// Mock data for demonstration
-export const mockNews: NewsItem[] = [
-  {
-    id: '1',
-    title: 'React 19 Alpha: The Future of React',
-    summary:
-      'The React team announces React 19 alpha with groundbreaking features including compiler optimizations and enhanced server components.',
-    imageUrl: 'https://images.unsplash.com/photo-1633356122544-f134324a6cee',
-    source: 'React Blog',
-    publishedAt: new Date('2024-02-20'),
-    tags: ['React', 'JavaScript', 'Frontend'],
-    url: 'https://react.dev',
-  },
-  {
-    id: '2',
-    title: 'The Rise of AI in Code Generation',
-    summary:
-      'How AI-powered code generation tools are transforming the way developers write code and what it means for the future of programming.',
-    imageUrl: 'https://images.unsplash.com/photo-1677442136019-21780ecad995',
-    source: 'TechCrunch',
-    publishedAt: new Date('2024-02-19'),
-    tags: ['AI', 'Programming', 'Future Tech'],
-    url: 'https://techcrunch.com',
-  },
-  {
-    id: '3',
-    title: 'TypeScript 5.4 Release Candidate',
-    summary:
-      'Explore the latest features and improvements in TypeScript 5.4, including enhanced type inference and new utility types.',
-    imageUrl: 'https://images.unsplash.com/photo-1629654297299-c8506221ca97',
-    source: 'TypeScript Blog',
-    publishedAt: new Date('2024-02-18'),
-    tags: ['TypeScript', 'JavaScript', 'Programming'],
-    url: 'https://devblogs.microsoft.com/typescript',
-  },
-];
+
 
 export default function DiscoverScreen() {
-  const [articles, setArticles] = useState<NewsItem[]>(mockNews);
+  const { articles, isLoading, error, fetchNews } = useNews();
+  const [refreshing, setRefreshing] = useState(false);
+  const [currentArticles, setCurrentArticles] = useState(articles);
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
 
+  useEffect(() => {
+    fetchNews(false); // Use cached data on initial load
+  }, []);
+
+  useEffect(() => {
+    setCurrentArticles(articles);
+  }, [articles]);
+
   const handleSwipeLeft = () => {
-    setArticles((prevArticles) => prevArticles.slice(1));
+    setCurrentArticles((prevArticles) => prevArticles.slice(1));
   };
 
   const { saveArticle } = useSavedArticles();
 
   const handleSwipeRight = () => {
     // Save the current article
-    const currentArticle = articles[0];
-    saveArticle(currentArticle);
-    
-    // Remove the current card
-    setArticles((prevArticles) => prevArticles.slice(1));
+    if (currentArticles.length > 0) {
+      saveArticle(currentArticles[0]);
+      setCurrentArticles(prev => prev.slice(1));
+    }
   };
 
-  const handleRefresh = () => {
-    setArticles(mockNews);
-  };
+  const onRefresh = React.useCallback(async () => {
+    setRefreshing(true);
+    await fetchNews(true); // Force fresh data
+    setRefreshing(false);
+  }, [fetchNews]);
 
   return (
     <Background>
-      <View style={styles.container}>
-      {articles.length > 0 ? (
-        articles.map((item, index) => (
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={[styles.scrollContent, !currentArticles.length && { flex: 1 }]}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={isDark ? '#fff' : '#000'}
+          />
+        }
+      >
+      {isLoading ? (
+        <View style={styles.centerContainer}>
+          <ActivityIndicator size="large" color={isDark ? '#fff' : '#000'} />
+        </View>
+      ) : error ? (
+        <View style={styles.centerContainer}>
+          <Text style={[styles.errorText, isDark && styles.errorTextDark]}>
+            {error}
+          </Text>
+          <Pressable
+            style={[styles.refreshButton, { backgroundColor: isDark ? '#333' : '#e0e0e0' }]}
+            onPress={fetchNews}>
+            <Text style={[styles.refreshButtonText, { color: isDark ? '#fff' : '#000' }]}>
+              Try Again
+            </Text>
+          </Pressable>
+        </View>
+      ) : currentArticles.length > 0 ? (
+        currentArticles.map((item, index) => (
           <NewsCard
             key={item.id}
             item={item}
@@ -77,34 +81,54 @@ export default function DiscoverScreen() {
             onSwipeRight={handleSwipeRight}
             style={{
               position: 'absolute',
-              zIndex: articles.length - index,
+              zIndex: currentArticles.length - index,
             }}
           />
         ))
       ) : (
-        <View style={styles.emptyContainer}>
+        <View style={styles.centerContainer}>
           <Text style={[styles.emptyText, { color: isDark ? '#fff' : '#000' }]}>
             No more articles to read
           </Text>
           <Pressable
             style={[styles.refreshButton, { backgroundColor: isDark ? '#333' : '#e0e0e0' }]}
-            onPress={handleRefresh}>
+            onPress={fetchNews}>
             <Text style={[styles.refreshButtonText, { color: isDark ? '#fff' : '#000' }]}>
               Refresh Articles
             </Text>
           </Pressable>
         </View>
       )}
-      </View>
+      </ScrollView>
     </Background>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
+  scrollContent: {
+    flexGrow: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    padding: 20,
+  },
+  centerContainer: {
+    width: '100%',
+    alignItems: 'center',
+    padding: 20,
+  },
+  errorText: {
+    fontSize: 16,
+    color: '#FF3B30',
+    textAlign: 'center',
+    marginBottom: 16,
+  },
+  errorTextDark: {
+    color: '#FF453A',
+  },
+  container: {
+    flex: 1,
+    // justifyContent: 'center',
+    // alignItems: 'center',
     paddingHorizontal: 16,
   },
   emptyContainer: {

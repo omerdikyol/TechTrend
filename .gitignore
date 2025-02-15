@@ -119,3 +119,5 @@ package-lock.json
 expo-env.d.ts
 .expo
 # @end expo-cli
+
+.env

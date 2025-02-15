@@ -8,25 +8,27 @@ import {
   Image,
   useColorScheme,
   SafeAreaView,
+  ListRenderItem,
 } from 'react-native';
 import Background from '../../components/Background';
 import { useSavedArticles } from '../../context/SavedArticlesContext';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { formatDistanceToNow } from 'date-fns';
+import { NewsItem } from '../../components/NewsCard';
 
 export default function SavedScreen() {
   const { savedArticles, removeArticle } = useSavedArticles();
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
 
-  const renderItem = ({ item }) => (
+  const renderItem: ListRenderItem<NewsItem> = ({ item }) => (
     <Pressable
       style={[styles.card, { backgroundColor: isDark ? '#1A1A1A' : '#FFFFFF' }]}
-      onPress={() => router.push(`/article/${item.id}`)}>
+      onPress={() => router.push({ pathname: '/article/[id]', params: { id: item.id } })}>
       <Image source={{ uri: item.imageUrl }} style={styles.image} />
       <View style={styles.content}>
-        <View style={styles.header}>
+        <View style={styles.cardHeader}>
           <View style={styles.tagsContainer}>
             {item.tags.slice(0, 2).map((tag) => (
               <View
@@ -148,7 +150,7 @@ const styles = StyleSheet.create({
   content: {
     padding: 16,
   },
-  header: {
+  cardHeader: {  // Renamed from 'header' to fix duplicate property
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
