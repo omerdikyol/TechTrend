@@ -14,6 +14,7 @@ import { formatDistanceToNow } from 'date-fns';
 import { NewsItem } from './NewsCard';
 import { useSavedArticles } from '../context/SavedArticlesContext';
 import { useTheme } from '../constants/theme';
+import { cleanHtml } from '../utils/htmlParser';
 
 export default function SavedArticles() {
   const { savedArticles, removeArticle } = useSavedArticles();
@@ -59,7 +60,7 @@ export default function SavedArticles() {
         <Text
           style={[styles.summary, { color: isDark ? '#ccc' : '#666' }]}
           numberOfLines={2}>
-          {item.summary}
+          {cleanHtml(item.summary)}
         </Text>
         <View style={styles.footer}>
           <Text style={[styles.source, { color: isDark ? '#ccc' : '#666' }]}>

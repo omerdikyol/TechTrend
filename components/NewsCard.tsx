@@ -181,23 +181,35 @@ export default function NewsCard({
     ],
   }), []); // Add empty dependency array
 
-  const saveIndicatorStyle = useAnimatedStyle(() => ({
-    opacity: saveOpacity.value,
-    transform: [
-      { scale: interpolate(saveOpacity.value, [0, 1], [0.8, 1.2]) },
-      { translateX: interpolate(saveOpacity.value, [0, 1], [50, 0]) }
-    ],
-    backgroundColor: `rgba(34, 197, 94, ${interpolate(saveOpacity.value, [0, 1], [0.6, 0.9])})`,
-  }), []);
+  const saveIndicatorStyle = useAnimatedStyle(() => {
+    const scale = interpolate(saveOpacity.value, [0, 1], [0.8, 1]);
+    const translateY = interpolate(saveOpacity.value, [0, 1], [20, 0]);
+    const rotate = interpolate(saveOpacity.value, [0, 1], [-10, 0]);
+    
+    return {
+      opacity: saveOpacity.value,
+      transform: [
+        { scale },
+        { translateY },
+        { rotate: `${rotate}deg` }
+      ],
+    };
+  }, []);
 
-  const dismissIndicatorStyle = useAnimatedStyle(() => ({
-    opacity: dismissOpacity.value,
-    transform: [
-      { scale: interpolate(dismissOpacity.value, [0, 1], [0.8, 1.2]) },
-      { translateX: interpolate(dismissOpacity.value, [0, 1], [-50, 0]) }
-    ],
-    backgroundColor: `rgba(239, 68, 68, ${interpolate(dismissOpacity.value, [0, 1], [0.6, 0.9])})`,
-  }), []);
+  const dismissIndicatorStyle = useAnimatedStyle(() => {
+    const scale = interpolate(dismissOpacity.value, [0, 1], [0.8, 1]);
+    const translateY = interpolate(dismissOpacity.value, [0, 1], [20, 0]);
+    const rotate = interpolate(dismissOpacity.value, [0, 1], [10, 0]);
+    
+    return {
+      opacity: dismissOpacity.value,
+      transform: [
+        { scale },
+        { translateY },
+        { rotate: `${rotate}deg` }
+      ],
+    };
+  }, []);
 
   const ambientGlowStyle = useAnimatedStyle(() => {
     const glowOpacity = interpolate(glowAnimation.value, [0.6, 1], [0.3, 0.6]);
@@ -240,22 +252,36 @@ export default function NewsCard({
       >
         {/* Save Indicator */}
         <Animated.View style={[styles.indicator, styles.saveIndicator, saveIndicatorStyle]}>
-          <View style={styles.indicatorContent}>
-            <Animated.View style={styles.iconContainer}>
-              <Ionicons name="bookmark" size={32} color="white" />
-            </Animated.View>
-            <Text style={styles.indicatorText}>SAVE</Text>
-          </View>
+          <LinearGradient
+            colors={['#22c55e', '#15803d']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.indicatorGradient}
+          >
+            <View style={styles.indicatorContent}>
+              <View style={styles.iconContainer}>
+                <Ionicons name="bookmark" size={32} color="white" />
+              </View>
+              <Text style={styles.indicatorText}>SAVE</Text>
+            </View>
+          </LinearGradient>
         </Animated.View>
 
         {/* Skip Indicator */}
         <Animated.View style={[styles.indicator, styles.skipIndicator, dismissIndicatorStyle]}>
-          <View style={styles.indicatorContent}>
-            <Animated.View style={styles.iconContainer}>
-              <Ionicons name="close-circle" size={32} color="white" />
-            </Animated.View>
-            <Text style={styles.indicatorText}>SKIP</Text>
-          </View>
+          <LinearGradient
+            colors={['#ef4444', '#b91c1c']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.indicatorGradient}
+          >
+            <View style={styles.indicatorContent}>
+              <View style={styles.iconContainer}>
+                <Ionicons name="close-circle" size={32} color="white" />
+              </View>
+              <Text style={styles.indicatorText}>SKIP</Text>
+            </View>
+          </LinearGradient>
         </Animated.View>
 
         <View style={styles.cardContent}>
@@ -452,11 +478,10 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: '45%',
     zIndex: 1000,
-    width: 110,
-    height: 110,
-    borderRadius: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
+    width: 120,
+    height: 120,
+    borderRadius: 24,
+    overflow: 'hidden',
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
@@ -465,37 +490,41 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 8,
     elevation: 8,
-    backdropFilter: 'blur(8px)',
+  },
+  indicatorGradient: {
+    flex: 1,
+    padding: 4,
   },
   saveIndicator: {
     right: 20,
-    borderWidth: 2,
-    borderColor: 'rgba(255, 255, 255, 0.3)',
   },
   skipIndicator: {
     left: 20,
-    borderWidth: 2,
-    borderColor: 'rgba(255, 255, 255, 0.3)',
   },
   indicatorContent: {
+    flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 20,
     gap: 8,
   },
   iconContainer: {
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 4,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
   },
   indicatorText: {
     color: 'white',
     fontWeight: '800',
     fontSize: 16,
-    letterSpacing: 1,
+    letterSpacing: 2,
     textShadowColor: 'rgba(0, 0, 0, 0.3)',
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 2,
