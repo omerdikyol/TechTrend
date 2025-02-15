@@ -87,18 +87,19 @@ export default function NewsCard({
   const dismissOpacity = useSharedValue(0);
   const isSwipeGesture = useSharedValue(false);
   const isShareButtonPressed = useSharedValue(false);
-  const glowIntensity = useSharedValue(0.15);
+  const glowAnimation = useSharedValue(0);
 
   useEffect(() => {
-    glowIntensity.value = withRepeat(
+    // Create a more dramatic pulsing glow effect
+    glowAnimation.value = withRepeat(
       withSequence(
-        withTiming(0.3, { 
-          duration: 4000,
-          easing: Easing.bezier(0.4, 0, 0.2, 1)
+        withTiming(1, {
+          duration: 3000,
+          easing: Easing.bezier(0.4, 0, 0.6, 1),
         }),
-        withTiming(0.2, { 
-          duration: 4000,
-          easing: Easing.bezier(0.4, 0, 0.2, 1)
+        withTiming(0.6, {
+          duration: 3000,
+          easing: Easing.bezier(0.4, 0, 0.6, 1),
         })
       ),
       -1,
@@ -154,10 +155,10 @@ export default function NewsCard({
           velocity: event.velocityX,
           damping: 20,
         });
-        if (direction === 1) {
-          runOnJS(onSwipeRight)?.();
-        } else {
-          runOnJS(onSwipeLeft)?.();
+        if (direction === 1 && onSwipeRight) {
+          runOnJS(onSwipeRight)();
+        } else if (direction === -1 && onSwipeLeft) {
+          runOnJS(onSwipeLeft)();
         }
       } else {
         translateX.value = withSpring(0, {
@@ -182,36 +183,37 @@ export default function NewsCard({
 
   const saveIndicatorStyle = useAnimatedStyle(() => ({
     opacity: saveOpacity.value,
-    transform: [{ 
-      scale: interpolate(
-        saveOpacity.value,
-        [0, 1],
-        [0.8, 1.2]
-      )
-    }],
-  }), []); // Add empty dependency array
+    transform: [
+      { scale: interpolate(saveOpacity.value, [0, 1], [0.8, 1.2]) },
+      { translateX: interpolate(saveOpacity.value, [0, 1], [50, 0]) }
+    ],
+    backgroundColor: `rgba(34, 197, 94, ${interpolate(saveOpacity.value, [0, 1], [0.6, 0.9])})`,
+  }), []);
 
   const dismissIndicatorStyle = useAnimatedStyle(() => ({
     opacity: dismissOpacity.value,
-    transform: [{ 
-      scale: interpolate(
-        dismissOpacity.value,
-        [0, 1],
-        [0.8, 1.2]
-      )
-    }],
-  }), []); // Add empty dependency array
+    transform: [
+      { scale: interpolate(dismissOpacity.value, [0, 1], [0.8, 1.2]) },
+      { translateX: interpolate(dismissOpacity.value, [0, 1], [-50, 0]) }
+    ],
+    backgroundColor: `rgba(239, 68, 68, ${interpolate(dismissOpacity.value, [0, 1], [0.6, 0.9])})`,
+  }), []);
 
-  const glowStyle = useAnimatedStyle(() => ({
-    shadowOpacity: glowIntensity.value,
-  }));
-
-  const glowColorStyle = useAnimatedStyle(() => {
-    const isBeingSwiped = Math.abs(translateX.value) > 0;
+  const ambientGlowStyle = useAnimatedStyle(() => {
+    const glowOpacity = interpolate(glowAnimation.value, [0.6, 1], [0.3, 0.6]);
+    const glowSize = interpolate(glowAnimation.value, [0.6, 1], [15, 30]);
+    
+    const hue = interpolate(glowAnimation.value, [0.6, 1], [210, 220]); // Subtle blue variation
+    const glowColor = isDark 
+      ? `hsla(${hue}, 80%, 60%, ${glowOpacity})`
+      : `hsla(${hue}, 70%, 50%, ${glowOpacity})`;
+    
     return {
-      shadowColor: isBeingSwiped 
-        ? (translateX.value > 0 ? '#22c55e' : '#ef4444')  // Green for save, red for skip
-        : (isDark ? '#4a90e2' : '#3b82f6'),              // Default blue glow
+      shadowOpacity: glowOpacity,
+      shadowRadius: glowSize,
+      shadowColor: glowColor,
+      shadowOffset: { width: 0, height: 0 },
+      elevation: glowSize * 2, // For Android
     };
   });
 
@@ -225,19 +227,23 @@ export default function NewsCard({
     <GestureDetector gesture={composed}>
       <Animated.View 
         style={[
-          styles.card, 
-          { shadowColor: isDark ? '#4a90e2' : '#3b82f6' },
-          style, 
-          animatedStyle, 
-          glowStyle,
-          glowColorStyle
+          styles.card,
+          style,
+          animatedStyle,
+          ambientGlowStyle,
+          {
+            shadowColor: isDark ? '#4a90e2' : '#3b82f6',
+            backgroundColor: 'rgba(255, 255, 255, 0.08)',
+          }
         ]}
-        collapsable={false} // Optimize native animation performance
+        collapsable={false}
       >
         {/* Save Indicator */}
         <Animated.View style={[styles.indicator, styles.saveIndicator, saveIndicatorStyle]}>
           <View style={styles.indicatorContent}>
-            <Ionicons name="bookmark" size={40} color="white" />
+            <Animated.View style={styles.iconContainer}>
+              <Ionicons name="bookmark" size={32} color="white" />
+            </Animated.View>
             <Text style={styles.indicatorText}>SAVE</Text>
           </View>
         </Animated.View>
@@ -245,7 +251,9 @@ export default function NewsCard({
         {/* Skip Indicator */}
         <Animated.View style={[styles.indicator, styles.skipIndicator, dismissIndicatorStyle]}>
           <View style={styles.indicatorContent}>
-            <Ionicons name="close-circle" size={40} color="white" />
+            <Animated.View style={styles.iconContainer}>
+              <Ionicons name="close-circle" size={32} color="white" />
+            </Animated.View>
             <Text style={styles.indicatorText}>SKIP</Text>
           </View>
         </Animated.View>
@@ -257,7 +265,6 @@ export default function NewsCard({
               cache: 'force-cache' // Add image caching
             }} 
             style={styles.image}
-            loading="lazy"
           />
           <LinearGradient
             colors={['transparent', 'rgba(0,0,0,0.9)']} // Darker gradient for better readability
@@ -320,24 +327,29 @@ const styles = StyleSheet.create({
     height: CARD_HEIGHT,
     position: 'relative',
     borderRadius: 20,
-    backgroundColor: 'transparent', // Remove white background
-    shadowColor: '#4a90e2',
     shadowOffset: {
       width: 0,
       height: 0,
     },
-    shadowOpacity: 0.2,
-    shadowRadius: 20,
-    elevation: 12,
+    shadowOpacity: 0.5,
+    shadowRadius: 25,
+    elevation: 30,
     overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+    // Add these properties for better glow distribution
+    shadowColor: 'rgba(74, 144, 226, 0.6)',
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
   },
   cardContent: {
     flex: 1,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)', // Very subtle light reflection
   },
   image: {
     width: '100%',
     height: '100%',
     borderRadius: 20,
+    opacity: 0.95, // Slight transparency for better glow effect
   },
   gradient: {
     position: 'absolute',
@@ -440,28 +452,52 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: '45%',
     zIndex: 1000,
-    width: 100,
-    height: 100,
-    borderRadius: 10,
+    width: 110,
+    height: 110,
+    borderRadius: 20,
     justifyContent: 'center',
     alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+    backdropFilter: 'blur(8px)',
   },
   saveIndicator: {
     right: 20,
-    backgroundColor: 'rgba(39, 174, 96, 0.8)',
+    borderWidth: 2,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
   },
   skipIndicator: {
     left: 20,
-    backgroundColor: 'rgba(231, 76, 60, 0.8)',
+    borderWidth: 2,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
   },
   indicatorContent: {
     alignItems: 'center',
     justifyContent: 'center',
+    gap: 8,
+  },
+  iconContainer: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 4,
   },
   indicatorText: {
     color: 'white',
-    marginTop: 5,
-    fontWeight: 'bold',
+    fontWeight: '800',
     fontSize: 16,
+    letterSpacing: 1,
+    textShadowColor: 'rgba(0, 0, 0, 0.3)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
   },
 });
