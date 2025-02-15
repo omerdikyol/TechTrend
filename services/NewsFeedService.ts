@@ -15,13 +15,6 @@ export interface CustomFeed {
 class NewsFeedService {
   private defaultFeeds: CustomFeed[] = [
     {
-      id: 'hackernews',
-      name: 'Hacker News',
-      url: 'https://hnrss.org/frontpage',
-      type: 'rss',
-      enabled: true,
-    },
-    {
       id: 'devto',
       name: 'Dev.to',
       url: 'https://dev.to/feed',

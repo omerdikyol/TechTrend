@@ -20,6 +20,9 @@ import Animated, {
   runOnJS,
   withTiming,
   interpolate,
+  withRepeat,
+  withSequence,
+  Easing,
 } from 'react-native-reanimated';
 import {
   GestureDetector,
@@ -30,6 +33,7 @@ import {
 import { formatDistanceToNow } from 'date-fns';
 import { cleanHtml } from '../utils/htmlParser';
 import { router } from 'expo-router';
+import { useTheme } from '../constants/theme';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 const CARD_WIDTH = SCREEN_WIDTH * 0.9;
@@ -76,14 +80,31 @@ export default function NewsCard({
   onSwipeRight,
   style,
 }: NewsCardProps) {
+  const { isDark } = useTheme();
   const translateX = useSharedValue(0);
   const rotation = useSharedValue(0);
   const saveOpacity = useSharedValue(0);
   const dismissOpacity = useSharedValue(0);
   const isSwipeGesture = useSharedValue(false);
   const isShareButtonPressed = useSharedValue(false);
+  const glowIntensity = useSharedValue(0.15);
 
   useEffect(() => {
+    glowIntensity.value = withRepeat(
+      withSequence(
+        withTiming(0.3, { 
+          duration: 4000,
+          easing: Easing.bezier(0.4, 0, 0.2, 1)
+        }),
+        withTiming(0.2, { 
+          duration: 4000,
+          easing: Easing.bezier(0.4, 0, 0.2, 1)
+        })
+      ),
+      -1,
+      true
+    );
+
     saveOpacity.value = 0;
     dismissOpacity.value = 0;
   }, [item]);
@@ -181,6 +202,19 @@ export default function NewsCard({
     }],
   }), []); // Add empty dependency array
 
+  const glowStyle = useAnimatedStyle(() => ({
+    shadowOpacity: glowIntensity.value,
+  }));
+
+  const glowColorStyle = useAnimatedStyle(() => {
+    const isBeingSwiped = Math.abs(translateX.value) > 0;
+    return {
+      shadowColor: isBeingSwiped 
+        ? (translateX.value > 0 ? '#22c55e' : '#ef4444')  // Green for save, red for skip
+        : (isDark ? '#4a90e2' : '#3b82f6'),              // Default blue glow
+    };
+  });
+
   const handlePress = () => {
     if (!isSwipeGesture.value) {
       router.push(`/article/${item.id}`);
@@ -190,7 +224,14 @@ export default function NewsCard({
   return (
     <GestureDetector gesture={composed}>
       <Animated.View 
-        style={[styles.card, style, animatedStyle]}
+        style={[
+          styles.card, 
+          { shadowColor: isDark ? '#4a90e2' : '#3b82f6' },
+          style, 
+          animatedStyle, 
+          glowStyle,
+          glowColorStyle
+        ]}
         collapsable={false} // Optimize native animation performance
       >
         {/* Save Indicator */}
@@ -256,17 +297,9 @@ export default function NewsCard({
                     )}
                   </View>
                 ) : (
-                  <>
-                    <Pressable onPress={() => handleShare(item, (value) => isShareButtonPressed.value = value)}>
-                      <Ionicons name="share-outline" size={24} color="white" />
-                    </Pressable>
-                    <Ionicons
-                      name="chatbubble-outline"
-                      size={24}
-                      color="white"
-                      style={{ marginLeft: 16 }}
-                    />
-                  </>
+                  <Pressable onPress={() => handleShare(item, (value) => isShareButtonPressed.value = value)}>
+                    <Ionicons name="share-outline" size={24} color="white" />
+                  </Pressable>
                 )}
               </View>
             </View>
@@ -288,14 +321,14 @@ const styles = StyleSheet.create({
     position: 'relative',
     borderRadius: 20,
     backgroundColor: 'transparent', // Remove white background
-    shadowColor: '#000',
+    shadowColor: '#4a90e2',
     shadowOffset: {
       width: 0,
-      height: 2,
+      height: 0,
     },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    elevation: 5,
+    shadowOpacity: 0.2,
+    shadowRadius: 20,
+    elevation: 12,
     overflow: 'hidden',
   },
   cardContent: {
@@ -363,14 +396,26 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 12,
+    shadowColor: '#fff',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
   },
   hnStatText: {
     color: 'white',
     fontSize: 14,
+    textShadowColor: 'rgba(0, 0, 0, 0.5)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
   },
   actions: {
     flexDirection: 'row',
     alignItems: 'center',
+    paddingRight: 8,
   },
   tagsContainer: {
     flexDirection: 'row',
